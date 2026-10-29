@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#238CCD">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jornada">
+<title>Jornada</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="robots" content="noindex, nofollow">
+<style>
+/* Letras guardadas con la app: no dependen de internet ni de Google. */
+@font-face{font-family:"Barlow";font-style:normal;font-weight:400;font-display:swap;src:url(font-barlow-400.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-style:normal;font-weight:500;font-display:swap;src:url(font-barlow-500.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-style:normal;font-weight:600;font-display:swap;src:url(font-barlow-600.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:600;font-display:swap;src:url(font-barlow-condensed-600.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:700;font-display:swap;src:url(font-barlow-condensed-700.woff2) format("woff2")}
+/* Layout: una columna del ancho de un teléfono, centrada, con barra de acción fija abajo en la pantalla principal. */
+:root{
+  --bg:#EEF3F8;--surface:#FFFFFF;--field:#F5F8FB;--ink:#10202D;--muted:#4E6275;--line:#D0DBE5;
+  --accent:#1969A0;--on-accent:#FFFFFF;--brand:#238CCD;--brand-y:#FDD20E;--ph:#5F7183;--warn-bg:#FBEBCB;--warn:#744600;--ok-bg:#DCEFE2;--ok:#14502F;--err:#A12A2A;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C151D;--surface:#15222D;--field:#101B25;--ink:#E7EFF6;--muted:#9DB2C4;--line:#2A3B4A;
+  --accent:#52B0EA;--on-accent:#04192A;--brand:#238CCD;--brand-y:#FDD20E;--ph:#7F94A6;--warn-bg:#3A2E10;--warn:#F0C25E;--ok-bg:#1B3A28;--ok:#8FD6AC;--err:#F29A9A;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C151D;--surface:#15222D;--field:#101B25;--ink:#E7EFF6;--muted:#9DB2C4;--line:#2A3B4A;
+  --accent:#52B0EA;--on-accent:#04192A;--brand:#238CCD;--brand-y:#FDD20E;--ph:#7F94A6;--warn-bg:#3A2E10;--warn:#F0C25E;--ok-bg:#1B3A28;--ok:#8FD6AC;--err:#F29A9A;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;padding-inline:16px;padding-block:14px 110px}
+.app{max-width:440px;margin-inline:auto;display:flex;flex-direction:column;gap:14px}
+h1,h2{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance}
+h1{font-size:30px}h2{font-size:22px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lbl{font-size:16px;font-weight:700;color:var(--ink);margin:0 0 5px;display:block}
+input[type=text],input[type=time],input[type=number]{width:100%;min-height:48px;font:inherit;font-size:17px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+input:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.err{color:var(--err);font-size:13px;margin:4px 0 0;font-weight:500}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{flex:1 1 auto;min-height:48px;font:inherit;font-size:15px;font-weight:500;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chips[aria-label=Comuna]{display:grid;grid-template-columns:1fr 1fr}
+.btn{min-height:52px;font:inherit;font-size:17px;font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;cursor:pointer;width:100%}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.small{min-height:44px;font-size:15px;font-weight:500}
+.btn:active{transform:scale(.99)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:60px;cursor:pointer}
+.item b{font-weight:600}.item small{color:var(--muted);display:block;font-size:13px}
+.tag{font-size:12px;font-weight:500;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line)}
+.bar>div{max-width:440px;margin-inline:auto}
+.back{align-self:flex-start;font:inherit;font-size:15px;font-weight:500;color:var(--accent);background:none;border:0;padding:8px 0;cursor:pointer;min-height:44px}
+.hours{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.hours.two{grid-template-columns:1fr 1fr}
+.hours div{background:var(--field);border-radius:8px;padding:8px 4px}
+.hours b{display:block;font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.hours span{font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin:0}
+.toast{position:fixed;left:16px;right:16px;bottom:96px;max-width:408px;margin-inline:auto;background:var(--ink);color:var(--bg);border-radius:8px;padding:12px 14px;font-weight:500;text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.btn[disabled]{opacity:.6}
+.arow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 8px 8px 14px;min-height:60px}
+.arow.ok{background:var(--ok-bg);border-color:transparent}
+.aname{min-width:0}.aname b{font-family:var(--display);font-size:20px;display:block;line-height:1.1}
+.aname small{color:var(--muted);font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow.ok .aname small{color:var(--ok);font-weight:500}
+.abtn{font:inherit;font-weight:600;font-size:16px;color:var(--accent);background:var(--surface);border:2px dashed var(--accent);border-radius:8px;min-height:48px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.alink{font:inherit;font-weight:500;font-size:15px;color:var(--accent);background:none;border:0;min-height:48px;padding:0 10px;cursor:pointer}
+body{-webkit-text-size-adjust:100%}
+.foot{font-size:13px;color:var(--muted);text-align:center;margin:6px 0 0}
+.lnk{color:var(--accent);font-weight:600;text-decoration:underline}
+.okmsg{background:var(--ok-bg);color:var(--ok);border-radius:8px;padding:10px 12px;font-size:14px;font-weight:500;margin:0}
+
+/* Fotos de antes y después */
+.btn.ico{display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--accent);color:var(--accent);background:var(--surface)}
+.fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.th{position:relative;aspect-ratio:3/4;border:1px solid var(--line);border-radius:8px;background:var(--field);padding:0;overflow:hidden;cursor:pointer;display:block;min-width:0}
+.th img{width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
+.th .st{position:absolute;right:5px;top:5px;min-width:26px;height:26px;border-radius:13px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.st.ok{background:var(--ok-bg);color:var(--ok)}.st.pen{background:var(--warn-bg);color:var(--warn)}.st.bad{background:var(--err);color:var(--surface)}
+.th.add{border:2px dashed var(--accent);color:var(--accent);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:inherit;font-weight:600;font-size:15px}
+/* Cámara y visor: pantalla completa, siempre oscuros */
+.cam,.vis{position:fixed;inset:0;z-index:50;background:#000;color:#fff;display:flex;flex-direction:column}
+.cam[hidden],.vis[hidden]{display:none}
+body.cam-open{overflow:hidden}
+.cam-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.cam-top .cam-x{justify-self:start}
+.cam-top b{font-family:var(--display);font-size:22px;letter-spacing:.03em;font-weight:700}
+.cam-x{font:inherit;font-size:15px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:8px;min-height:44px;padding:0 14px;cursor:pointer}
+.cam-n{justify-self:end;text-align:right;font-size:14px;font-weight:500;color:#cfd8d2}
+.cam-gps{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:14px;font-weight:500;line-height:1.25}
+.cam-gps[hidden]{display:none}
+.cam-gps.ok{background:#14502F;color:#DCEFE2}.cam-gps.wait{background:#3A2E10;color:#F0C25E}.cam-gps.bad{background:#5A2020;color:#F7CACA}
+.cam-gps.clk{padding:5px 14px;font-size:13px;border-top:1px solid rgba(255,255,255,.12)}
+.cam-gps .dot{flex:0 0 auto}
+.cam-msg b{font-weight:600}
+.cam-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000}
+.cam-frame{position:relative}
+.cam-frame video,.cam-frame canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.cam-frame [hidden]{display:none}
+.cam-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;font-size:17px;line-height:1.4}
+.cam-msg[hidden]{display:none}
+.cam-bot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px calc(14px + env(safe-area-inset-bottom,0px));background:#000;min-height:104px}
+.cam-bot .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
+.cam-bot .btn.main{background:var(--accent);color:var(--on-accent)}
+.cam-hint{flex:1 1 0;font-size:14px;color:#cfd8d2;min-width:0}
+.cam-ok{flex:1 1 0;font:inherit;font-size:17px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:10px;min-height:52px;padding:0 12px;cursor:pointer;max-width:120px;margin-left:auto}
+.shutter{flex:0 0 auto;width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.22);cursor:pointer;padding:0;position:relative}
+.shutter::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#fff}
+.shutter:active::after{inset:9px}
+.shutter[disabled]{opacity:.35;cursor:not-allowed}
+.vis .cam-stage img{max-width:100%;max-height:100%;object-fit:contain}
+/* Teléfono acostado: la imagen ocupa todo el alto y los botones pasan a una columna a la derecha */
+@media (orientation:landscape) and (max-height:520px){
+  .cam{display:grid;grid-template-columns:minmax(0,1fr) 116px;grid-template-rows:auto auto auto minmax(0,1fr)}
+  .cam>.cam-top{grid-column:1;grid-row:1;padding:4px 10px;padding-top:calc(4px + env(safe-area-inset-top,0px));padding-left:calc(10px + env(safe-area-inset-left,0px))}
+  .cam>.cam-top b{font-size:18px}
+  .cam>.cam-x{min-height:36px}
+  .cam>#cam-gps{grid-column:1;grid-row:2;padding:4px 12px;padding-left:calc(12px + env(safe-area-inset-left,0px));font-size:13px}
+  .cam>#cam-clk{grid-column:1;grid-row:3;padding:3px 12px;padding-left:calc(12px + env(safe-area-inset-left,0px));font-size:12px}
+  .cam>.cam-stage{grid-column:1;grid-row:4}
+  .cam>.cam-bot{grid-column:2;grid-row:1/5;flex-direction:column;justify-content:center;gap:10px;min-height:0;padding:8px 12px;padding-right:calc(12px + env(safe-area-inset-right,0px))}
+  .cam-bot .btn{width:100%;min-height:44px;padding:0 6px;font-size:15px}
+  .cam-bot .cam-hint{flex:0 0 auto;text-align:center;font-size:12px}
+  .cam-ok{flex:0 0 auto;width:100%;max-width:none;margin:0;min-height:44px;font-size:15px}
+  .shutter{width:66px;height:66px}
+  .cam-msg{padding:12px 20px;font-size:15px}
+  .cam-top .cam-x{min-height:36px;padding:0 10px}
+}
+::placeholder{color:var(--ph);opacity:1}
+.brand{background:var(--brand);margin:-22px -24px 14px;padding-top:env(safe-area-inset-top,0px);border-bottom:4px solid var(--brand-y)}
+.brand>div{width:min(100%,488px);margin-inline:auto;padding:0 24px;height:56px;display:flex;align-items:center}
+.brand img{display:block;height:30px;width:auto;margin-left:-6px}
+</style>
+</head>
+<body>
+<header class="brand"><div><img src="logo-cooprel.png" alt="COOPREL" width="136" height="30"></div></header>
+<main class="app" id="app"></main>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="config.js"></script>
+<script>
+var CFG=window.APP_CONFIG||{};
+var VER="5", PTRE=/^R\d{6}$/, KEY="faenas-app-v1";
+var SEND=["Fecha","PT","ID","Propietario","Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Hora_Inicio","Hora_Termino","Kilometraje","Tala_20_30","Tala_31_60","Tala_Mas_60","Poda","Roce_Debil","Roce_Fuerte"];
+var ALIM=["1","2","3","4","5"], COMUNAS=["La Unión","Río Bueno","Lago Ranco","San Pablo"];
+var PROD=[["Tala_20_30","Tala 20 a 30 m","n"],["Tala_31_60","Tala 31 a 60 m","n"],["Tala_Mas_60","Tala más de 60 m","n"],["Poda","Poda","n"],["Roce_Debil","Roce débil (m)","d"],["Roce_Fuerte","Roce fuerte (m)","d"]];
+var S={recs:[],dels:[],dq:[],pq:[],lc:0,lastOk:0,copied:false,docSyncing:false,docErr:"",fotoSyncing:false,fotoErr:"",day:null,profile:null,view:"home",sel:null,draft:{},err:{},busy:false,syncing:false,syncErr:"",confirmDel:false,editing:false,afterDay:false};
+var $app=document.getElementById("app");
+
+function cobraKm(){return !!(S.profile&&S.profile.Km)}
+function kmField(){return cobraKm()?'<div><label class="lbl" for="f-km">Kilometraje del día (km)</label><input id="f-km" type="text" inputmode="decimal" autocomplete="off" value="'+esc(S.draft.km)+'">'+errOf("km")+'<p class="note" style="margin-top:4px">Tu brigada cobra kilometraje. Se anota una sola vez al día.</p></div>':""}
+function kmLine(b){return cobraKm()?'<p class="note">Kilometraje del día: <b>'+(b&&b.km?esc(b.km)+" km":"sin registrar")+"</b></p>":""}
+
+function p2(n){return String(n).padStart(2,"0")}
+function isoOf(d){return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())}
+function today(){return isoOf(new Date())}
+function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return isoOf(d)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function blank(){var r={};SEND.forEach(function(c){r[c]=""});return r}
+function touch(r){r.synced=false;r._v=(r._v||0)+1}
+
+function load(){
+  try{var v=localStorage.getItem(KEY);if(v){var o=JSON.parse(v);
+    S.recs=o.recs||[];S.dels=o.dels||[];S.dq=o.dq||[];S.pq=o.pq||[];S.lc=o.lc||0;S.profile=o.profile||null;S.day=o.day||null;S.lastOk=o.lastOk||0;limpiaMalas();
+    var cut=daysAgo(14);S.recs=S.recs.filter(function(r){return !r.synced||r.Fecha>=cut})}}catch(e){}
+}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({recs:S.recs,dels:S.dels,dq:S.dq,pq:S.pq,profile:S.profile,day:S.day,lastOk:S.lastOk,lc:S.lc}))}catch(e){}}
+function save(){persist();scheduleSync()}
+function mine(){return S.recs.filter(function(r){return r.Fecha===today()&&S.profile&&r._c===S.profile.Codigo})}
+function dayInfo(){return S.day&&S.day.fecha===today()?S.day:null}
+function applyDay(){
+  var d=dayInfo();if(!d)return;
+  mine().forEach(function(r,i){
+    var nv={PT:d.PT,ID:d.ID,Hora_Inicio:i===0?(d.hi||""):"",Hora_Termino:i===0?(d.ht||""):"",Kilometraje:i===0&&cobraKm()?(d.km||""):""};
+    var ch=false;Object.keys(nv).forEach(function(k){if(String(r[k]||"")!==String(nv[k])){r[k]=nv[k];ch=true}});
+    if(ch)touch(r);
+  });
+}
+function real(){return mine().filter(function(r){return !r._day})}
+function ensureDayRow(){
+  var d=dayInfo();if(!d||mine().length)return;
+  var r=blank();r.Fecha=today();r.PT=d.PT;r.ID=d.ID;r._day=true;
+  r._k="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);r._c=S.profile.Codigo;
+  touch(r);S.recs.push(r);applyDay();
+}
+function hasProd(r){return PROD.some(function(q){return r[q[0]]!==""&&r[q[0]]!=null})}
+function pending(){return real().filter(function(r){return !hasProd(r)})}
+function unsynced(){return S.recs.filter(function(r){return !r.synced}).length+S.dels.length+S.dq.length+fotosPend().length}
+function hhmm(t){var d=new Date(t);return p2(d.getHours())+":"+p2(d.getMinutes())}
+/* "Enviado 08:31" (hoy) o "Enviado 20-10 17:05" (otro día). Si nunca se ha enviado nada: "Todo enviado". */
+function lastOkTxt(){if(!S.lastOk)return "Todo enviado";var d=new Date(S.lastOk);return "Enviado "+(isoOf(d)===today()?"":p2(d.getDate())+"-"+p2(d.getMonth()+1)+" ")+hhmm(S.lastOk)}
+function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(function(){t.hidden=true},2600)}
+function go(v,id){if(v!=="new")S.editing=false;S.confirmDel=false;S.view=v;S.sel=id||null;S.err={};window.scrollTo(0,0);render()}
+
+/* ---------- Comunicación con el servidor ---------- */
+function api(payload,ms){
+  if(!CFG.API_URL)return Promise.reject({code:"config"});
+  var ctl=("AbortController" in window)?new AbortController():null,to=ctl?setTimeout(function(){ctl.abort()},ms||25000):0;
+  var t0=Date.now();
+  return fetch(CFG.API_URL,{method:"POST",body:JSON.stringify(payload),redirect:"follow",signal:ctl?ctl.signal:undefined})
+    .then(function(r){clearTimeout(to);return r.json()})
+    .then(function(j){if(j&&j.now!=null)relojNota(Number(j.now),t0,Date.now());return j});
+}
+function wire(r){var o={k:r._k};SEND.forEach(function(c){o[c]=r[c]});return o}
+/* Fotos: se guardan en el teléfono (IndexedDB) hasta que se envían a Drive. */
+function idbOpen(){return new Promise(function(res,rej){
+  if(!window.indexedDB)return rej(new Error("idb"));
+  var q=indexedDB.open("jornada-docs",1);
+  q.onupgradeneeded=function(){q.result.createObjectStore("f")};
+  q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)};
+})}
+function idbDo(mode,fn){return idbOpen().then(function(db){return new Promise(function(res,rej){
+  var t=db.transaction("f",mode),r=fn(t.objectStore("f"));
+  t.oncomplete=function(){res(r&&r.result)};t.onerror=function(){rej(t.error)};
+})})}
+function idbPut(k,v){return idbDo("readwrite",function(s){return s.put(v,k)})}
+function idbGet(k){return idbDo("readonly",function(s){return s.get(k)})}
+function idbDel(k){return idbDo("readwrite",function(s){return s["delete"](k)})}
+function b64(blob){return new Promise(function(res,rej){var f=new FileReader();f.onload=function(){res(String(f.result).split(",")[1]||"")};f.onerror=function(){rej(f.error)};f.readAsDataURL(blob)})}
+/* ---------- Fotos de antes y después ---------- */
+/* Cada foto lleva escritos encima la fecha, la hora, la empresa, la brigada, el ID del proyecto y la ubicación. Esos datos se dibujan en la imagen misma
+   (no son una capa aparte), así que no se pueden sacar. La cámara se abre dentro de la app y no deja elegir fotos de la galería.
+   La hora no se toma a ciegas del reloj del teléfono: con señal se confirma con el servidor (siempre en hora de Chile) y, si el reloj
+   del teléfono está corrido más de 2 minutos, no deja sacar fotos. Cada foto viaja con su huella (SHA-256) para detectar cambios. */
+var MAXFOTOS=6,LADO=1600,CALIDAD=0.72,LADO_V=800,CAL_V=0.62,ESPERA_GPS=45000,GPS_VIEJO=120000,GPS_REFRESCA=30000,GPS_DEBIL=100;
+var TZ="America/Santiago",TOL_RELOJ=120000,RELOJ_VIVO=120000,RELOJ_CADA=40000,RELOJ_ESPERA=6000;
+/* Rechazos del servidor que no se arreglan reintentando (la foto se queda guardada en el teléfono, marcada, y se avisa). */
+var FOTOPERM=["grande","tipo_archivo","tipo","vacio","datos","fecha","fase","limite"];
+var ICO_CAM='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.2" r="3.5"/></svg>';
+var MSG_MALA="Hay una foto que el servidor no aceptó (marcada con !). Sigue guardada en este teléfono. Avisa al administrador.";
+var CAM=null,thURL={};
+function fotosDe(r,fase){return (r&&r.fotos||[]).filter(function(f){return f.fase===fase})}
+function fotosTxt(r){var a=fotosDe(r,"antes").length,d=fotosDe(r,"despues").length;return a||d?"Fotos: "+a+" antes · "+d+" después":""}
+/* Una foto que el servidor rechazó para siempre queda en la cola, marcada. Al cambiar la versión de la app se vuelve a intentar. */
+function colaDe(id){return S.pq.filter(function(q){return q.id===id})[0]}
+function fotoMala(id){var q=colaDe(id);return !!(q&&q.bad&&q.bv===VER)}
+function fotosMalas(){return S.pq.filter(function(q){return q.bad&&q.bv===VER})}
+function fotosPend(){return S.pq.filter(function(q){return !(q.bad&&q.bv===VER)})}
+function limpiaMalas(){S.pq.forEach(function(q){if(q.bad&&q.bv!==VER){delete q.bad;delete q.bv}})}
+/* Fecha y hora SIEMPRE en hora de Chile, aunque el teléfono tenga otra zona horaria configurada. */
+var DTF=null;
+function chile(t){
+  var o={};
+  try{
+    if(!DTF)DTF=new Intl.DateTimeFormat("en-GB",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
+    DTF.formatToParts(new Date(t)).forEach(function(q){o[q.type]=q.value});
+    if(o.hour==="24")o.hour="00";
+  }catch(e){var d=new Date(t);o={day:p2(d.getDate()),month:p2(d.getMonth()+1),year:String(d.getFullYear()),hour:p2(d.getHours()),minute:p2(d.getMinutes()),second:p2(d.getSeconds())}}
+  return o;
+}
+function fFecha(t){var o=chile(t);return o.day+"-"+o.month+"-"+o.year}
+function fHora(t){var o=chile(t);return o.hour+":"+o.minute+":"+o.second}
+/* ----- Hora oficial ----- */
+/* RELOJ.off = hora del servidor − hora del teléfono (ms), medida cuando la hora del teléfono era RELOJ.at. Cada respuesta del servidor
+   trae su hora (api() la anota); además la cámara la pregunta al abrirse y cada 40 s. Una medida sirve 2 minutos. */
+var RELOJ={off:0,at:0};
+function relojNota(srv,t0,t1){
+  if(!isFinite(srv))return;
+  if(srv>(S.lc||0)){S.lc=srv;persist()}                 /* S.lc = última hora que dio el servidor: la foto no puede ser anterior */
+  if(t1-t0>3000)return;                                  /* respuesta lenta: sirve como contacto, no para medir la diferencia */
+  RELOJ.off=Math.round(srv-(t0+t1)/2);RELOJ.at=t1;
+}
+function relojFresco(){return !!RELOJ.at&&Date.now()-RELOJ.at<=RELOJ_VIVO}
+function ahora(){var n=Date.now(),ok=relojFresco()&&Math.abs(RELOJ.off)<=TOL_RELOJ;return{t:n+(ok?RELOJ.off:0),vf:ok,dev:n}}
+function durTxt(ms){
+  var m=Math.round(Math.abs(ms)/60000);if(m<1)return "menos de 1 minuto";if(m<60)return m+(m===1?" minuto":" minutos");
+  var h=Math.floor(m/60),mm=m%60;if(h<24)return h+(h===1?" hora":" horas")+(mm?" "+mm+" min":"");
+  var d=Math.floor(h/24),hh=h%24;return d+(d===1?" día":" días")+(hh?" "+hh+" h":"");
+}
+/* Estado del reloj para la cámara: ok (verificado con el servidor) · sin (sin señal: se usa el reloj del teléfono) · mide (preguntando) · mala (corrido: no deja sacar fotos). */
+function relojEstado(){
+  if(relojFresco())return Math.abs(RELOJ.off)>TOL_RELOJ?"mala":"ok";
+  return CAM&&CAM.rk==="mide"?"mide":"sin";
+}
+function relojMedir(){
+  if(!CAM)return;
+  if(CAM.rk==="mide"&&Date.now()-CAM.rkT<RELOJ_ESPERA+500)return;
+  if(!navigator.onLine||!CFG.API_URL){RELOJ.at=0;CAM.rk="";camUi();return}
+  CAM.rk="mide";CAM.rkT=Date.now();camUi();
+  api({action:"hora"},RELOJ_ESPERA).then(function(res){
+    if(!res||!res.ok||!isFinite(res.now))RELOJ.at=0;      /* sin respuesta: se vuelve a "sin señal" */
+    if(CAM){CAM.rk="";camUi()}
+  }).catch(function(){RELOJ.at=0;if(CAM){CAM.rk="";camUi()}});
+}
+/* Huella digital (SHA-256) de la foto terminada. El servidor la recalcula al recibirla. */
+function sha256(blob){return new Promise(function(res){
+  try{
+    if(!(window.crypto&&crypto.subtle&&window.FileReader))return res("");
+    var f=new FileReader();
+    f.onload=function(){crypto.subtle.digest("SHA-256",f.result).then(function(b){var a=new Uint8Array(b),h="";for(var i=0;i<a.length;i++)h+=(a[i]<16?"0":"")+a[i].toString(16);res(h)},function(){res("")})};
+    f.onerror=function(){res("")};f.readAsArrayBuffer(blob);
+  }catch(e){res("")}
+})}
+function fPos(p){return p?"Ubicación: "+p.lat.toFixed(6)+", "+p.lon.toFixed(6)+"  (±"+Math.round(p.acc)+" m)":"Sin ubicación"}
+function rrect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath()}
+/* Achica la letra hasta que el texto quepa en el ancho disponible (nombres de empresa largos). */
+function fitFont(c,t,wt,sz,maxW,fam){var z=Math.round(sz);c.font=wt+" "+z+"px "+fam;while(z>sz*.55&&c.measureText(t).width>maxW){z=Math.floor(z*.94);c.font=wt+" "+z+"px "+fam}return z}
+/* Dibuja los datos en la franja de abajo. Es la MISMA función para lo que se ve en la cámara y para la foto que se guarda.
+   Líneas: fecha y hora (+ ANTES/DESPUÉS) · contratista, brigada e ID del proyecto · ubicación.
+   Si el nombre de la empresa es tan largo que no cabe todo en una línea, el ID del proyecto pasa a una línea propia. */
+function sello(cv,info){
+  var c=cv.getContext("2d"),w=cv.width,h=cv.height,s=Math.min(w,h)/28,pad=Math.round(s*.6),lh=Math.round(s*1.36),fam='"Barlow","Barlow Condensed",Arial,sans-serif',maxW=w-pad*2;
+  var quien=info.empresa+" · "+info.brigada,idp=info.proyecto?"ID proyecto "+info.proyecto:"",junto=idp?quien+" · "+idp:quien;
+  c.save();c.font="500 "+Math.round(s)+"px "+fam;
+  var L=[fFecha(info.t)+"   "+fHora(info.t)];
+  if(idp&&c.measureText(junto).width>maxW){L.push(quien);L.push(idp)}else L.push(junto);
+  L.push(fPos(info.pos));
+  var bh=pad*2+lh*L.length,y0=h-bh;
+  c.fillStyle="rgba(0,0,0,.70)";c.fillRect(0,y0,w,bh);c.textBaseline="middle";c.textAlign="left";
+  var tx=info.fase==="antes"?"ANTES":"DESPUÉS";c.font="700 "+Math.round(s*1.05)+"px "+fam;
+  var cw=Math.round(c.measureText(tx).width+s*1.3),ch=Math.round(lh*.86),cx=w-pad-cw,cy=Math.round(y0+pad+lh*.5-ch/2);
+  c.fillStyle=info.fase==="antes"?"#F2B84B":"#4DB07A";rrect(c,cx,cy,cw,ch,Math.round(ch*.28));c.fill();
+  c.fillStyle="#10201A";c.textAlign="center";c.fillText(tx,cx+cw/2,cy+ch/2+1);
+  c.textAlign="left";
+  for(var i=0;i<L.length;i++){
+    c.fillStyle=(i===L.length-1&&!info.pos)?"#F0C25E":"#fff";
+    if(i===0)fitFont(c,L[i],"600",s*1.25,cx-pad*2,fam);else fitFont(c,L[i],"500",s,maxW,fam);
+    c.fillText(L[i],pad,y0+pad+lh*(i+.5));
+  }
+  c.restore();
+}
+/* Las miniaturas se leen del teléfono (IndexedDB) y se ponen en su lugar después de dibujar cada pantalla. */
+function hydrate(){
+  [].forEach.call(document.querySelectorAll("img[data-th]"),function(im){
+    var id=im.getAttribute("data-th");if(im.getAttribute("src"))return;
+    if(thURL[id]){im.src=thURL[id];return}
+    idbGet("v|"+id).then(function(v){if(v&&v.blob){thURL[id]=URL.createObjectURL(v.blob);im.src=thURL[id]}}).catch(function(){});
+  });
+}
+function fotoCard(r,fase){
+  var L=fotosDe(r,fase),antes=fase==="antes",h='<section class="card"><div class="row"><h2>Fotos de '+(antes?"antes":"después")+'</h2>'+(L.length?'<span class="note">'+L.length+(L.length===1?" foto":" fotos")+'</span>':"")+'</div>';
+  h+='<p class="note">'+(antes?"Tómalas antes de empezar la tala y el roce.":"Tómalas cuando termines la tala y el roce.")+'</p>';
+  if(!L.length){h+='<button type="button" class="btn ico" data-act="foto" data-fase="'+fase+'">'+ICO_CAM+'Tomar foto de '+(antes?"antes":"después")+'</button>'}
+  else{
+    h+='<div class="fotos">';
+    L.forEach(function(f){var m=!f.sent&&fotoMala(f.id);h+='<button type="button" class="th" data-act="ver" data-id="'+esc(f.id)+'" aria-label="Ver foto"><img data-th="'+esc(f.id)+'" alt=""><span class="st '+(f.sent?"ok":m?"bad":"pen")+'">'+(f.sent?"✓":m?"!":"↑")+'</span></button>'});
+    if(L.length<MAXFOTOS)h+='<button type="button" class="th add" data-act="foto" data-fase="'+fase+'">'+ICO_CAM+'<span>Otra foto</span></button>';
+    h+='</div><p class="note">✓ enviada · ↑ por enviar (se envía sola cuando haya señal)'+(L.length>=MAXFOTOS?". Llegaste al máximo de "+MAXFOTOS+" fotos.":"")+'</p>';
+    if(L.some(function(f){return !f.sent&&fotoMala(f.id)}))h+='<p class="err fm">'+MSG_MALA+'</p>';
+  }
+  return h+'</section>';
+}
+/* Cambia solo las marcas ✓ / ↑ de las miniaturas, sin redibujar la pantalla (así no se pierde lo que se está escribiendo). */
+function refreshFotos(){
+  if(S.view!=="finish")return;
+  var r=S.recs.filter(function(x){return x._k===S.sel})[0];if(!r)return;
+  [].forEach.call(document.querySelectorAll(".th[data-id]"),function(b){
+    var f=(r.fotos||[]).filter(function(x){return x.id===b.getAttribute("data-id")})[0],s=b.querySelector(".st");
+    if(f&&s){var m=!f.sent&&fotoMala(f.id);s.className="st "+(f.sent?"ok":m?"bad":"pen");s.textContent=f.sent?"✓":m?"!":"↑"}
+  });
+  /* El aviso de "foto no aceptada" aparece o desaparece también sin redibujar la pantalla. */
+  [].forEach.call(document.querySelectorAll("section.card"),function(sc){
+    var mala=sc.querySelector(".th .st.bad"),er=sc.querySelector("p.err.fm");
+    if(mala&&!er){var p=document.createElement("p");p.className="err fm";p.textContent=MSG_MALA;sc.appendChild(p)}
+    else if(!mala&&er)er.parentNode.removeChild(er);
+  });
+}
+/* ----- Cámara ----- */
+function camEl(){var el=document.getElementById("cam");if(!el){el=document.createElement("div");el.id="cam";el.className="cam";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","Cámara");document.body.appendChild(el)}return el}
+function openCam(fase){
+  var r=S.recs.filter(function(x){return x._k===S.sel})[0];if(!r||CAM)return;
+  if(fotosDe(r,fase).length>=MAXFOTOS){toast("Ya tienes "+MAXFOTOS+" fotos "+(fase==="antes"?"de antes":"de después"));return}
+  if(document.fonts&&document.fonts.load){try{document.fonts.load('600 20px "Barlow"');document.fonts.load('500 20px "Barlow"');document.fonts.load('700 20px "Barlow"')}catch(e){}}
+  CAM={k:r._k,fase:fase,st:"start",gps:"wait",pos:null,shot:null,n:0,t0:Date.now(),msg:"",sig:"",rk:"",rkT:0};
+  var el=camEl();el.hidden=false;document.body.classList.add("cam-open");
+  el.innerHTML='<div class="cam-top"><button type="button" class="cam-x" data-act="cam-x" aria-label="Cerrar la cámara">✕ Cerrar</button><b>Foto de '+(fase==="antes"?"ANTES":"DESPUÉS")+'</b><span class="cam-n" id="cam-n"></span></div>'+
+    '<div class="cam-gps" id="cam-gps" role="status"></div><div class="cam-gps clk" id="cam-clk" role="status"></div>'+
+    '<div class="cam-stage" id="cam-stage"><div class="cam-frame" id="cam-frame"><video id="cam-v" playsinline muted autoplay></video><canvas id="cam-o"></canvas><canvas id="cam-r" hidden></canvas></div><div class="cam-msg" id="cam-msg" hidden></div></div>'+
+    '<div class="cam-bot" id="cam-bot"></div>';
+  camStream();gpsIni();CAM.iv=setInterval(camTick,1000);camUi();
+  relojMedir();CAM.rt=setInterval(relojMedir,RELOJ_CADA);
+}
+function camStop(){if(CAM&&CAM.stream){CAM.stream.getTracks().forEach(function(t){t.stop()});CAM.stream=null}}
+function camLive(){return !!(CAM&&CAM.stream&&CAM.stream.getTracks().some(function(t){return t.readyState==="live"}))}
+function camStream(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){camErr("Esta forma de abrir la app no deja usar la cámara.");return}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1440}},audio:false}).then(function(st){
+    if(!CAM){st.getTracks().forEach(function(t){t.stop()});return}
+    CAM.stream=st;var v=document.getElementById("cam-v");v.srcObject=st;
+    var go=function(){if(!CAM)return;if(CAM.st!=="review")CAM.st="live";camFit();camUi()};
+    if(v.readyState>=1&&v.videoWidth)go();else v.onloadedmetadata=function(){var p=v.play();if(p&&p.catch)p.catch(function(){});go()};
+  }).catch(function(e){camErr(e&&(e.name==="NotAllowedError"||e.name==="SecurityError")?"La app no tiene permiso para usar la cámara. Actívalo en la configuración del teléfono y vuelve a intentar.":"No se pudo abrir la cámara. Cierra otras apps que la estén usando y vuelve a intentar.")});
+}
+function camErr(m){if(!CAM)return;CAM.st="err";CAM.msg=m;camUi()}
+function gpsOk(p){if(!CAM)return;CAM.pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0,t:Date.now()};CAM.gps=CAM.pos.acc>GPS_DEBIL?"weak":"ok";camTick()}      /* camTick redibuja la franja de la vista en vivo al tiro (si no, esperaría hasta 1 s) */
+function gpsFail(e){if(!CAM)return;if(e&&e.code===1)CAM.gps="denied";camUi()}
+function gpsIni(){
+  if(!navigator.geolocation){CAM.gps="nogps";return}
+  try{
+    CAM.wid=navigator.geolocation.watchPosition(gpsOk,gpsFail,{enableHighAccuracy:true,maximumAge:5000,timeout:30000});
+    /* Con el teléfono quieto, watchPosition puede quedarse callado. Cada 30 s se pide la posición otra vez para renovarla: así una posición buena no se da por perdida. */
+    CAM.gt=setInterval(function(){if(!CAM||CAM.gps==="denied"||CAM.gps==="nogps")return;try{navigator.geolocation.getCurrentPosition(gpsOk,gpsFail,{enableHighAccuracy:true,maximumAge:10000,timeout:20000})}catch(e){}},GPS_REFRESCA);
+  }catch(e){CAM.gps="nogps"}
+}
+/* El cuadro de la cámara se ajusta al tamaño real de la imagen, para que lo que se ve sea exactamente lo que queda en la foto. */
+function camFit(){
+  var v=document.getElementById("cam-v"),f=document.getElementById("cam-frame"),sg=document.getElementById("cam-stage"),o=document.getElementById("cam-o"),r=document.getElementById("cam-r");
+  if(!CAM||!v||!f||!v.videoWidth)return;
+  var vw=v.videoWidth,vh=v.videoHeight,k=Math.min(1,LADO/Math.max(vw,vh));
+  CAM.cw=Math.round(vw*k);CAM.ch=Math.round(vh*k);if(o.width!==CAM.cw||o.height!==CAM.ch){o.width=CAM.cw;o.height=CAM.ch}if(CAM.st!=="review"){r.width=CAM.cw;r.height=CAM.ch}
+  var aw=sg.clientWidth,ah=sg.clientHeight,sc=Math.min(aw/vw,ah/vh);f.style.width=Math.floor(vw*sc)+"px";f.style.height=Math.floor(vh*sc)+"px";
+  camTick();
+}
+/* El ID del proyecto sale del tramo (que lo copió de los datos del día); si no lo tuviera, de los datos del día. */
+function proyectoDe(r){var d=dayInfo();return String(r&&r.ID||d&&d.ID||"").trim()}
+function camInfo(){
+  var r=S.recs.filter(function(x){return x._k===CAM.k})[0],pos=CAM.pos&&Date.now()-CAM.pos.t<GPS_VIEJO?CAM.pos:null,a=ahora();
+  return{t:a.t,vf:a.vf,dev:a.dev,lc:S.lc||0,empresa:S.profile.Empresa,brigada:S.profile.Brigada,proyecto:proyectoDe(r),pos:pos,fase:CAM.fase}
+}
+function camTick(){
+  if(!CAM)return;
+  if(CAM.gps==="wait"&&Date.now()-CAM.t0>ESPERA_GPS)CAM.gps="late";
+  if((CAM.gps==="ok"||CAM.gps==="weak")&&CAM.pos&&Date.now()-CAM.pos.t>GPS_VIEJO)CAM.gps="lost";      /* ya no llegan posiciones: la última quedó vieja y no se usa */
+  var o=document.getElementById("cam-o");
+  if(o&&o.width&&CAM.st==="live"){var c=o.getContext("2d");c.clearRect(0,0,o.width,o.height);sello(o,camInfo())}
+  camUi();
+}
+var GPSMSG={wait:["wait","Buscando tu ubicación…"],ok:["ok","Ubicación lista"],weak:["wait","Ubicación poco precisa"],late:["bad","No se encontró la ubicación. Puedes sacar la foto igual; quedará marcada «sin ubicación»."],
+  lost:["bad","Se perdió la señal de ubicación. Puedes sacar la foto igual; quedará «sin ubicación»."],
+  denied:["bad","La app no tiene permiso para ver tu ubicación. Puedes sacar la foto igual; quedará «sin ubicación»."],nogps:["bad","Este teléfono no entrega la ubicación. La foto quedará «sin ubicación»."]};
+var RKMSG={ok:["ok","Hora verificada con el servidor"],sin:["wait","Sin señal: se usa la hora del teléfono"],mide:["wait","Verificando la hora…"],mala:["bad","El reloj del teléfono está mal puesto"]};
+function relojMsg(){
+  return '<div><b>La hora de tu teléfono está '+(RELOJ.off>0?"atrasada":"adelantada")+' '+durTxt(RELOJ.off)+'.</b><br>La fecha y la hora que salen escritas en la foto tienen que ser las correctas.<br><br>Corrígela en <b>Ajustes → Fecha y hora</b> y activa la opción <b>«Automática»</b>. Después pulsa «Revisar de nuevo».</div>';
+}
+function camUi(){
+  if(!CAM)return;
+  var g=document.getElementById("cam-gps"),ck=document.getElementById("cam-clk"),n=document.getElementById("cam-n"),bot=document.getElementById("cam-bot"),msg=document.getElementById("cam-msg"),v=document.getElementById("cam-v"),o=document.getElementById("cam-o"),r=document.getElementById("cam-r");
+  if(!g)return;
+  var gm=GPSMSG[CAM.gps]||GPSMSG.wait,tx=gm[1]+((CAM.gps==="ok"||CAM.gps==="weak")&&CAM.pos?" · ±"+Math.round(CAM.pos.acc)+" m":"");
+  var gh='<span class="dot"></span><span>'+esc(tx)+'</span>';
+  if(g.getAttribute("data-s")!==gm[0]+tx){g.className="cam-gps "+gm[0];g.innerHTML=gh;g.setAttribute("data-s",gm[0]+tx)}
+  n.textContent=CAM.n?CAM.n+(CAM.n===1?" foto":" fotos"):"";
+  var rs=relojEstado(),rm=RKMSG[rs],rt=rm[1];
+  if(ck.getAttribute("data-s")!==rm[0]+rt){ck.className="cam-gps clk "+rm[0];ck.innerHTML='<span class="dot"></span><span>'+esc(rt)+'</span>';ck.setAttribute("data-s",rm[0]+rt)}
+  var review=CAM.st==="review",err=CAM.st==="err",mala=rs==="mala"&&!review&&!err;
+  g.hidden=err||mala;ck.hidden=err||review;v.hidden=review||err||mala;o.hidden=review||err||mala;r.hidden=!review;msg.hidden=!(err||mala||CAM.st==="start");
+  if(mala)msg.innerHTML=relojMsg();else msg.textContent=err?CAM.msg:"Abriendo la cámara…";
+  var listo=CAM.st==="live"&&CAM.gps!=="wait"&&rs!=="mide"&&rs!=="mala",sig=[CAM.st,listo,CAM.n>0,mala].join("|");
+  if(sig===CAM.sig)return;CAM.sig=sig;     /* los botones solo se redibujan cuando cambia algo (así no se pierde un toque) */
+  if(mala)bot.innerHTML='<button type="button" class="btn" data-act="cam-x">Cerrar</button><button type="button" class="btn main" data-act="cam-clock">Revisar de nuevo</button>';
+  else if(review)bot.innerHTML='<button type="button" class="btn" data-act="cam-redo">Repetir</button><button type="button" class="btn main" data-act="cam-use">Usar esta foto</button>';
+  else if(err)bot.innerHTML='<button type="button" class="btn" data-act="cam-x">Cerrar</button><button type="button" class="btn main" data-act="cam-retry">Reintentar</button>';
+  else bot.innerHTML='<span class="cam-hint">'+(CAM.st==="live"&&!listo?(CAM.gps!=="wait"?"Verificando la hora…":"Espera la ubicación…"):"")+'</span><button type="button" class="shutter" data-act="cam-shoot" aria-label="Sacar foto"'+(listo?"":" disabled")+'></button>'+(CAM.n>0?'<button type="button" class="cam-ok" data-act="cam-x">Listo</button>':'<span class="cam-hint"></span>');
+}
+function camShoot(){
+  if(!CAM||CAM.st!=="live"||CAM.gps==="wait")return;
+  var rk=relojEstado();if(rk==="mide"||rk==="mala")return;
+  var v=document.getElementById("cam-v"),vw=v.videoWidth,vh=v.videoHeight;if(!vw||!vh)return;
+  var k=Math.min(1,LADO/Math.max(vw,vh)),cv=document.createElement("canvas");cv.width=Math.round(vw*k);cv.height=Math.round(vh*k);
+  cv.getContext("2d").drawImage(v,0,0,cv.width,cv.height);
+  var info=camInfo();sello(cv,info);
+  var r=document.getElementById("cam-r");r.width=cv.width;r.height=cv.height;r.getContext("2d").drawImage(cv,0,0);
+  CAM.shot={cv:cv,info:info};CAM.st="review";camUi();
+}
+function camUse(){
+  var sh=CAM&&CAM.shot;if(!sh||CAM.saving)return;CAM.saving=true;
+  var id="f"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),cv=sh.cv,kk=Math.min(1,LADO_V/Math.max(cv.width,cv.height));
+  var vv=document.createElement("canvas");vv.width=Math.round(cv.width*kk);vv.height=Math.round(cv.height*kk);vv.getContext("2d").drawImage(cv,0,0,vv.width,vv.height);
+  cv.toBlob(function(full){vv.toBlob(function(vista){
+    Promise.all([idbPut("foto|"+id,{blob:full}),idbPut("v|"+id,{blob:vista}),sha256(full)]).then(function(rr){
+      var hs=rr[2];
+      if(!CAM)return;CAM.saving=false;
+      var r=S.recs.filter(function(x){return x._k===CAM.k})[0];if(!r){camClose();return}
+      var p=sh.info.pos,m={id:id,fase:CAM.fase,ts:sh.info.t,lat:p?p.lat:null,lon:p?p.lon:null,acc:p?Math.round(p.acc):null,w:cv.width,h:cv.height};
+      (r.fotos=r.fotos||[]).push({id:id,fase:m.fase,ts:m.ts,sent:false});
+      S.pq.push({id:id,k:r._k,c:S.profile.Codigo,f:today(),fase:m.fase,ts:m.ts,lat:m.lat,lon:m.lon,acc:m.acc,w:m.w,h:m.h,vf:sh.info.vf,lc:sh.info.lc,dev:sh.info.dev,hs:hs,ip:sh.info.proyecto||"",cx:ctxDe(r)});
+      persist();CAM.n++;CAM.shot=null;CAM.st="live";CAM.sig="";render();
+      if(fotosDe(r,CAM.fase).length>=MAXFOTOS){var tf=CAM.fase;camClose();toast("Ya tienes "+MAXFOTOS+" fotos "+(tf==="antes"?"de antes":"de después"))}else camUi();
+      scheduleSync();
+    }).catch(function(){if(!CAM)return;CAM.saving=false;camErr("No se pudo guardar la foto en este teléfono. Libera espacio e intenta de nuevo.")});
+  },"image/jpeg",CAL_V)},"image/jpeg",CALIDAD);
+}
+function camClose(){
+  if(!CAM)return;
+  clearInterval(CAM.iv);clearInterval(CAM.rt);clearInterval(CAM.gt);if(CAM.wid!=null&&navigator.geolocation)try{navigator.geolocation.clearWatch(CAM.wid)}catch(e){}
+  camStop();
+  var el=document.getElementById("cam");if(el){el.hidden=true;el.innerHTML=""}
+  document.body.classList.remove("cam-open");CAM=null;
+}
+function verFoto(id){
+  var r=S.recs.filter(function(x){return x._k===S.sel})[0],f=(r&&r.fotos||[]).filter(function(x){return x.id===id})[0];if(!f)return;
+  var el=document.getElementById("vis");if(!el){el=document.createElement("div");el.id="vis";el.className="vis";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","Foto");document.body.appendChild(el)}
+  el.innerHTML='<div class="cam-top"><button type="button" class="cam-x" data-act="vis-x" aria-label="Cerrar la foto">✕ Cerrar</button><b>Foto de '+(f.fase==="antes"?"ANTES":"DESPUÉS")+'</b><span class="cam-n">'+(f.sent?"Enviada":fotoMala(f.id)?"No aceptada":"Por enviar")+'</span></div><div class="cam-stage"><img id="vis-i" alt="Foto"></div>';
+  el.hidden=false;document.body.classList.add("cam-open");
+  idbGet("v|"+id).then(function(v){if(v&&v.blob){var i=document.getElementById("vis-i");if(i){if(!thURL[id])thURL[id]=URL.createObjectURL(v.blob);i.src=thURL[id]}}}).catch(function(){});
+}
+function visClose(){var el=document.getElementById("vis");if(el){el.hidden=true;el.innerHTML=""}if(!CAM)document.body.classList.remove("cam-open")}
+/* ----- Envío a Drive (en segundo plano, una por una, con la señal que haya) ----- */
+/* Los datos del tramo viajan con la foto, para que la fila de la planilla los muestre (postes, comuna, sector, PT). */
+function ctxDe(r){return{pt:r.PT||"",id:r.ID||"",pi:r.Poste_Inicio||"",pf:r.Poste_Fin||"",comuna:r.Comuna||"",sector:r.Sector||""}}
+function markSent(q){var r=S.recs.filter(function(x){return x._k===q.k})[0];(r&&r.fotos||[]).forEach(function(f){if(f.id===q.id)f.sent=true})}
+function syncFotos(){
+  if(S.fotoSyncing||!navigator.onLine||!CFG.API_URL||!fotosPend().length)return;
+  S.fotoSyncing=true;var bad=false,chain=Promise.resolve();
+  fotosPend().forEach(function(q){chain=chain.then(function(){
+    return idbGet("foto|"+q.id).then(function(v){
+      if(!v){S.pq=S.pq.filter(function(x){return x.id!==q.id});return}
+      var r=S.recs.filter(function(x){return x._k===q.k})[0],cx=r?ctxDe(r):(q.cx||{}),cxs=JSON.stringify(cx);
+      return b64(v.blob).then(function(data){
+        return api({action:"foto",codigo:q.c,k:q.k,id:q.id,fase:q.fase,ts:q.ts,lat:q.lat,lon:q.lon,acc:q.acc,w:q.w,h:q.h,vf:q.vf,lc:q.lc,dev:q.dev,hash:q.hs||"",idp:q.ip||"",ctx:cx,data:data},120000);
+      }).then(function(res){
+        if(!res||!res.ok){
+          if(res&&FOTOPERM.indexOf(res.error)>-1){q.bad=res.error;q.bv=VER;persist();refreshFotos();return}     /* no se arregla reintentando: la foto NO se borra; queda marcada */
+          var e=new Error("foto");e.code=res&&res.error;throw e}
+        markSent(q);S.pq=S.pq.filter(function(x){return x.id!==q.id});S.lastOk=Date.now();
+        /* Si el tramo se corrigió mientras la foto viajaba, se vuelve a enviar el tramo: así la foto también muestra los datos nuevos. */
+        var r2=S.recs.filter(function(x){return x._k===q.k})[0];
+        if(r2&&JSON.stringify(ctxDe(r2))!==cxs){touch(r2);scheduleSync()}
+        persist();refreshFotos();
+        return idbDel("foto|"+q.id);
+      });
+    });
+  })});
+  chain.catch(function(e){bad=true;S.fotoErr=e&&e.code==="codigo"?"codigo":"red"}).then(function(){
+    S.fotoSyncing=false;if(!bad)S.fotoErr="";persist();
+    if(S.view==="home")render();else refreshFotos();
+    if(!bad&&fotosPend().length)setTimeout(syncFotos,500);
+  });
+}
+/* ART y PT que la versión anterior dejó pendientes en este teléfono: se terminan de enviar sin pantallas ni avisos (la app ya no pide adjuntarlos). */
+var DOCPERM=["grande","tipo_archivo","tipo","vacio","datos","fecha"];
+function syncDocs(){
+  if(S.docSyncing||!navigator.onLine||!CFG.API_URL||!S.dq.length)return;
+  S.docSyncing=true;var bad=false,chain=Promise.resolve();
+  S.dq.slice().forEach(function(d){chain=chain.then(function(){
+    return idbGet(d.key).then(function(v){
+      var quitar=function(){S.dq=S.dq.filter(function(x){return !(x.key===d.key&&x.ts===d.ts)});return idbGet(d.key).then(function(cur){if(cur&&cur.ts===d.ts)return idbDel(d.key)})};
+      if(!v){S.dq=S.dq.filter(function(x){return x.key!==d.key});return}
+      return b64(v.blob).then(function(data){
+        return api({action:"doc",codigo:d.c,fecha:d.f,tipo:d.t,nombre:v.name,mime:v.type,data:data},120000);
+      }).then(function(res){
+        if(!res||!res.ok){
+          if(res&&DOCPERM.indexOf(res.error)>-1)return quitar();         /* el servidor no lo acepta nunca: se descarta */
+          var e=new Error("doc");e.code=res&&res.error;throw e}
+        S.lastOk=Date.now();return quitar();
+      });
+    });
+  })});
+  chain.catch(function(e){bad=true;S.docErr=e&&e.code==="codigo"?"codigo":"red"}).then(function(){
+    S.docSyncing=false;if(!bad)S.docErr="";persist();
+    if(S.view==="home")render();
+    if(!bad&&S.dq.length)setTimeout(syncDocs,500);
+  });
+}
+/* Limpieza al abrir la app: se borran del teléfono las fotos y miniaturas que ya no pertenecen a ningún tramo ni están por enviar
+   (por ejemplo, las de tramos de hace más de 14 días). Los archivos de documentos de la versión anterior no se tocan. */
+function limpiarFotos(){
+  if(CAM||!window.indexedDB||!window.IDBObjectStore||!IDBObjectStore.prototype.getAllKeys)return;
+  idbDo("readonly",function(s){return s.getAllKeys()}).then(function(keys){
+    if(CAM)return;
+    var vivo={};
+    S.recs.forEach(function(r){(r.fotos||[]).forEach(function(f){vivo[f.id]=1})});
+    S.pq.forEach(function(q){vivo[q.id]=1});
+    (keys||[]).forEach(function(k){var m=/^(foto|v)\|(.+)$/.exec(String(k));if(m&&!vivo[m[2]])idbDel(k).catch(function(){})});
+  }).catch(function(){});
+}
+
+var syncTimer=0;
+function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(sync,400)}
+function sync(){
+  syncDocs();syncFotos();
+  if(S.syncing||!navigator.onLine||!CFG.API_URL||!S.profile&&!S.recs.length&&!S.dels.length)return;
+  var groups={};
+  S.recs.forEach(function(r){if(!r.synced)(groups[r._c]=groups[r._c]||{u:[],d:[]}).u.push(r)});
+  S.dels.forEach(function(x){(groups[x.c]=groups[x.c]||{u:[],d:[]}).d.push(x)});
+  var codes=Object.keys(groups);
+  if(!codes.length){if(S.syncErr){S.syncErr="";if(S.view==="home")render()}return}
+  S.syncing=true;
+  var chain=Promise.resolve(),err="";
+  codes.forEach(function(c){chain=chain.then(function(){
+    var g=groups[c],vs=g.u.map(function(r){return r._v});
+    return api({action:"sync",codigo:c,upserts:g.u.map(wire),deletes:g.d.map(function(x){return x.k})}).then(function(res){
+      if(!res||!res.ok){var e=new Error("sync");e.code=res&&res.error;throw e}
+      g.u.forEach(function(r,i){if(r._v===vs[i])r.synced=true});
+      S.dels=S.dels.filter(function(x){return g.d.indexOf(x)<0});S.lastOk=Date.now();
+    });
+  })});
+  chain.catch(function(e){err=e&&e.code==="codigo"?"codigo":"red"}).then(function(){
+    S.syncing=false;S.syncErr=err;persist();
+    if(S.view==="home")render();
+    if(!err&&unsynced())scheduleSync();
+  });
+}
+
+/* ---------- Pantallas ---------- */
+function chips(field,opts){
+  return '<div class="chips" role="group" aria-label="'+field+'">'+opts.map(function(o){
+    return '<button type="button" class="chip" data-chip="'+field+'" data-val="'+esc(o)+'" aria-pressed="'+(S.draft[field]===o)+'">'+esc(o)+'</button>'}).join("")+'</div>';
+}
+function field(id,label,opts){
+  opts=opts||{};
+  var e=S.err[id]?'<p class="err">'+esc(S.err[id])+'</p>':"";
+  return '<div><label class="lbl" for="f-'+id+'">'+label+'</label><input id="f-'+id+'" data-f="'+id+'" type="text" inputmode="'+(opts.mode||"text")+'" autocomplete="off" '+(opts.caps?'autocapitalize="characters" ':'')+'placeholder="'+esc(opts.ph||"")+'" value="'+esc(S.draft[id])+'">'+e+'</div>';
+}
+function errOf(id){return S.err[id]?'<p class="err">'+esc(S.err[id])+'</p>':""}
+function toMin(t){var a=t.split(":");return parseInt(a[0],10)*60+parseInt(a[1],10)}
+
+function pill(){
+  var u=unsynced();
+  if(!navigator.onLine)return '<span class="pill warn"><span class="dot"></span>Sin señal'+(u?' · '+u+' por enviar':'')+'</span>';
+  if(S.syncErr||S.docErr||S.fotoErr)return '<span class="pill warn"><span class="dot"></span>No se pudo enviar · '+u+' por enviar</span>';
+  if(u)return '<span class="pill warn"><span class="dot"></span>Enviando…</span>';
+  var nm=fotosMalas().length;
+  if(nm)return '<span class="pill warn"><span class="dot"></span>'+nm+(nm===1?' foto no aceptada':' fotos no aceptadas')+'</span>';
+  return '<span class="pill ok"><span class="dot"></span>'+lastOkTxt()+'</span>';
+}
+function viewHome(){
+  var pend=pending(),all=real(),done=all.filter(hasProd);
+  var h='<div class="top"><div><h1>Jornada</h1><p class="sub">'+esc(S.profile.Empresa)+' · '+esc(S.profile.Brigada)+'<br><button type="button" class="back" data-act="change-profile" style="min-height:36px;padding:0;display:inline">Cambiar brigada</button></p></div>'+pill()+'</div>';
+  if(S.syncErr==="codigo"||S.docErr==="codigo"||S.fotoErr==="codigo")h+='<p class="err">El código de tu brigada ya no es válido. Avisa al administrador.</p>';
+  var di=dayInfo(),hi=di&&di.hi||"",ht=di&&di.ht||"";
+  h+='<section class="card"><div class="row"><h2>Datos del día</h2></div>';
+  if(di){
+    h+='<div class="hours two"><div><b>'+esc(di.PT)+'</b><span>N° de PT</span></div><div><b>'+esc(di.ID)+'</b><span>ID</span></div><div><b>'+(hi||"--:--")+'</b><span>Hora de inicio</span></div><div><b>'+(ht||"--:--")+'</b><span>Hora de término</span></div></div>'+kmLine(di);
+    var fh=!hi&&!ht?"la hora de inicio y de término":!hi?"la hora de inicio":!ht?"la hora de término":"";
+    if(fh)h+='<p class="note" style="color:var(--warn)"><b>Falta '+fh+'.</b></p>';
+    else h+='<p class="note" style="color:var(--ok)"><b>Jornada completa ✓</b></p>';
+    h+='<button class="btn" data-act="day">'+(fh?"Completar datos del día":"Editar datos del día")+'</button>';
+  }else{
+    h+='<p class="note">El N° de PT, el ID y las horas se anotan una sola vez al día. Después solo agregas los postes.</p><button class="btn" data-act="day">Anotar datos del día</button>';
+  }
+  h+='</section>';
+  h+='<section style="display:flex;flex-direction:column;gap:8px"><h2>Postes por completar</h2>';
+  if(!pend.length)h+='<p class="note">Todo al día. Toca «Agregar postes» para el siguiente.</p>';
+  pend.forEach(function(r){h+=item(r,'<span class="tag warn">Falta producción</span>')});
+  h+='</section>';
+  if(done.length){h+='<section style="display:flex;flex-direction:column;gap:8px"><h2>Postes listos hoy</h2>';done.forEach(function(r){h+=item(r,'<span class="tag ok">Listo</span>')});h+='</section>'}
+  h+=foot();
+  h+='<div class="bar"><div><button class="btn main" data-act="new">+ Agregar postes</button></div></div>';
+  return h;
+}
+/* Pie: versión de la app y enlace de ayuda por WhatsApp (solo si en config.js está AYUDA_WSP). */
+function foot(){
+  var n=String(CFG.AYUDA_WSP||"").replace(/\D/g,""),a="";
+  if(n)a=' · ¿Problemas? <a class="lnk" target="_blank" rel="noopener" href="https://wa.me/'+n+'?text='+encodeURIComponent("Hola, soy "+S.profile.Empresa+" "+S.profile.Brigada+" (app versión "+VER+"). Tengo un problema con la app: ")+'">Escríbele al administrador</a>';
+  return '<p class="foot">Versión '+VER+a+'</p>';
+}
+function item(r,tag){
+  var ft=fotosTxt(r);
+  return '<button class="item" data-act="open" data-id="'+esc(r._k)+'"><span><b>Postes '+esc(r.Poste_Inicio)+' a '+esc(r.Poste_Fin)+'</b><small>'+esc(r.Comuna)+' · '+esc(r.Sector)+(r.synced?'':' · por enviar')+'</small>'+(ft?'<small>'+ft+'</small>':'')+'</span>'+tag+'</button>';
+}
+function prodGrid(src){
+  return '<div class="grid2">'+PROD.map(function(q){return '<div><label class="lbl" for="f-'+q[0]+'">'+q[1]+'</label><input id="f-'+q[0]+'" data-f="'+q[0]+'" data-kind="'+q[2]+'" type="text" inputmode="'+(q[2]==="d"?"decimal":"numeric")+'" autocomplete="off" value="'+esc(src[q[0]])+'"></div>'}).join("")+'</div>';
+}
+function viewNew(){
+  var h='<button class="back" data-act="home">‹ Volver</button><h1>'+(S.editing?"Corregir postes":"Agregar postes")+'</h1><p class="sub">'+esc(S.profile.Empresa)+' · '+esc(S.profile.Brigada)+' · N° de PT '+esc(dayInfo().PT)+' · ID '+esc(dayInfo().ID)+'</p>';
+  h+='<section class="card">';
+  if(S.copied&&!S.editing)h+='<p class="okmsg">Copiamos la comuna, el sector y el alimentador del registro anterior. <b>Cambia solo lo que sea distinto.</b></p>';
+  h+='<div><span class="lbl">Comuna</span>'+chips("Comuna",COMUNAS)+errOf("Comuna")+'</div>';
+  h+=field("Sector","Sector",{ph:"Nombre del sector"});
+  h+='<div><span class="lbl">Alimentador</span>'+chips("Alimentador",ALIM)+errOf("Alimentador")+'</div>';
+  h+='<div class="grid2">'+field("Poste_Inicio","Poste inicio",{mode:"numeric",ph:"1"})+field("Poste_Fin","Poste fin",{mode:"numeric",ph:"2"})+'</div>';
+  h+=field("Propietario","Propietario del poste",{ph:"Nombre y apellido"});
+  h+='<p class="note">Es el dueño del poste donde trabajas. Escríbelo en cada registro, porque puede cambiar de un poste a otro.</p>';
+  h+='</section>';
+  h+='<section class="card"><h2>Producción</h2><p class="note">Si ya hiciste el trabajo, anótalo ahora. Si no, déjalo vacío y lo completas después desde Pendientes.</p>'+prodGrid(S.draft)+'</section>';
+  h+='<button class="btn main" data-act="save-new">'+(S.editing?"Guardar cambios":"Guardar")+'</button>';
+  return h;
+}
+function viewFinish(){
+  var r=S.recs.filter(function(x){return x._k===S.sel})[0];
+  if(!r)return '<button class="back" data-act="home">‹ Volver</button><p>No se encontró el registro.</p>';
+  var h='<button class="back" data-act="home">‹ Volver</button><h1>Postes '+esc(r.Poste_Inicio)+' a '+esc(r.Poste_Fin)+'</h1><p class="sub">'+esc(r.Comuna)+' · '+esc(r.Sector)+'</p>';
+  h+=fotoCard(r,"antes")+fotoCard(r,"despues");
+  h+='<section class="card"><h2>Producción</h2>'+prodGrid(S.draft);
+  h+='<p class="note">Escribe solo lo que hiciste. Lo demás déjalo vacío. Si no hiciste nada en este poste, escribe 0 en cualquiera.</p>'+errOf("prod")+'</section>';
+  h+='<button class="btn main" data-act="save-finish">Guardar producción</button>';
+  h+='<button class="btn small" data-act="edit">Corregir postes, comuna, sector o propietario</button>';
+  h+=S.confirmDel?'<div class="card"><p style="margin:0">¿Borrar estos postes? No se puede deshacer.'+(fotosDe(r,"antes").length+fotosDe(r,"despues").length?' Las fotos de este tramo no se borran: quedan guardadas como respaldo.':'')+'</p><div class="grid2"><button class="btn small" data-act="del-no">No, volver</button><button class="btn small main" data-act="del-yes">Sí, borrar</button></div></div>':'<button class="btn small" data-act="del">Borrar estos postes</button>';
+  return h;
+}
+function viewDay(){
+  var h='<button class="back" data-act="home">‹ Volver</button><h1>Datos del día</h1><p class="sub">Se anotan una sola vez al día.</p>';
+  h+='<section class="card"><div class="grid2">'+field("PT","N° de PT",{ph:"R011026",caps:1})+field("ID","ID",{mode:"text",ph:"Ej: 9776"})+'</div><p class="note">El N° de PT es una R y 6 números. Ejemplo: R011026.</p></section>';
+  h+='<section class="card"><div class="grid2"><div><label class="lbl" for="f-hi">Hora de inicio</label><input id="f-hi" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="08:45" value="'+esc(S.draft.hi)+'">'+errOf("hi")+'</div><div><label class="lbl" for="f-ht">Hora de término</label><input id="f-ht" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="14:35" value="'+esc(S.draft.ht)+'">'+errOf("ht")+'</div></div><p class="note">Escribe solo números. Ejemplo: 812 queda 08:12.</p>'+kmField()+'</section>';
+  h+='<p class="note">Lo que falte lo puedes completar después.</p><button class="btn main" data-act="save-day">Guardar</button>';
+  return h;
+}
+function viewSetup(){
+  var first=!S.profile;
+  var h=(first?'':'<button class="back" data-act="home">‹ Volver</button>')+'<h1>Mi brigada</h1><p class="sub">'+(first?'Escribe el código que te dio tu empresa. Solo se pide una vez; la app lo recuerda.':'Cambia el código solo si te asignaron a otra brigada.')+'</p>';
+  h+='<section class="card">'+field("Codigo","Código de brigada",{ph:"Ej: TER1-123456",caps:1})+'<p class="note">Necesitas internet solo para este paso.</p></section>';
+  h+='<button class="btn main" data-act="save-profile"'+(S.busy?' disabled':'')+'>'+(S.busy?'Verificando…':'Entrar')+'</button>';
+  return h;
+}
+function render(){
+  if(!S.profile&&S.view!=="setup"){S.view="setup"}
+  var v=S.view;
+  $app.innerHTML=v==="setup"?viewSetup():v==="home"?viewHome():v==="new"?viewNew():v==="finish"?viewFinish():viewDay();
+  hydrate();
+}
+
+/* ---------- Guardado ---------- */
+function normHora(v){var g=String(v||"").replace(/\D/g,"");return g.length===3?"0"+g[0]+":"+g.slice(1):g.length===4?g.slice(0,2)+":"+g.slice(2):v}
+function saveDay(){
+  var d=S.draft,e={};d.hi=normHora(d.hi);d.ht=normHora(d.ht);
+  d.ID=(d.ID||"").trim();
+  if(!PTRE.test(d.PT||""))e.PT="El N° de PT es una R y 6 números. Ejemplo: R011026.";
+  if(!d.ID)e.ID="Escribe el ID.";
+  if(cobraKm()&&d.km&&isNaN(parseFloat(d.km)))e.km="Escribe los kilómetros con números.";
+  var HRE=/^([01]\d|2[0-3]):[0-5]\d$/;
+  if(d.hi&&!HRE.test(d.hi))e.hi="Escribe la hora con números. Ejemplo: 845 o 0845.";
+  if(d.ht&&!HRE.test(d.ht))e.ht="Escribe la hora con números. Ejemplo: 1435.";
+  if(!e.hi&&!e.ht&&d.hi&&d.ht&&toMin(d.ht)<toMin(d.hi))e.ht="La hora de término es antes que la de inicio.";
+  S.err=e;if(Object.keys(e).length){render();return}
+  S.day={fecha:today(),PT:d.PT,ID:d.ID,hi:d.hi||"",ht:d.ht||"",km:cobraKm()?(d.km||""):""};
+  applyDay();ensureDayRow();save();
+  var next=S.afterDay;S.afterDay=false;
+  if(next){newDraft();go("new")}else{toast("Datos del día guardados");go("home")}
+}
+function newDraft(){
+  var d={};
+  ["Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Propietario"].concat(PROD.map(function(q){return q[0]})).forEach(function(k){d[k]=""});
+  /* Del registro anterior de hoy se copian SOLO comuna, sector y alimentador (los postes no son siempre correlativos). */
+  var rs=real(),p=rs.length?rs[rs.length-1]:null;
+  S.copied=!!(p&&p.Comuna&&p.Sector&&p.Alimentador);
+  if(S.copied){d.Comuna=p.Comuna;d.Sector=p.Sector;d.Alimentador=p.Alimentador}
+  S.draft=d;
+}
+var EDIT=["Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Propietario"];
+function saveNew(){
+  var d=S.draft,e={};
+  ["Alimentador","Comuna"].forEach(function(k){if(!d[k])e[k]="Elige una opción."});
+  ["Sector","Propietario"].forEach(function(k){if(!String(d[k]||"").trim())e[k]="Este dato es obligatorio."});
+  ["Poste_Inicio","Poste_Fin"].forEach(function(k){if(!d[k])e[k]="Escribe un número."});
+  S.err=e;
+  if(Object.keys(e).length){render();var f=document.querySelector(".err");if(f)f.scrollIntoView({block:"center"});return}
+  var keys=EDIT.concat(PROD.map(function(q){return q[0]}));
+  if(S.editing){
+    var r0=S.recs.filter(function(x){return x._k===S.sel})[0];
+    keys.forEach(function(k){r0[k]=String(d[k]==null?"":d[k]).trim()});
+    touch(r0);save();toast("Cambios guardados");go("home");return
+  }
+  var dr=mine().filter(function(x){return x._day})[0];
+  var r=dr||blank();
+  keys.forEach(function(k){r[k]=String(d[k]==null?"":d[k]).trim()});
+  r.Fecha=today();r.PT=dayInfo().PT;r.ID=dayInfo().ID;
+  if(dr){delete r._day}else{r._k="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);r._c=S.profile.Codigo;S.recs.push(r)}
+  touch(r);applyDay();save();
+  S.draft={};PROD.forEach(function(p){S.draft[p[0]]=r[p[0]]||""});
+  toast(navigator.onLine?"Postes guardados. Ahora toma las fotos de antes":"Guardado en el teléfono. Ahora toma las fotos de antes");
+  go("finish",r._k);
+}
+function saveFinish(){
+  var d=S.draft,r=S.recs.filter(function(x){return x._k===S.sel})[0];
+  if(!PROD.some(function(q){return d[q[0]]!==""&&d[q[0]]!=null})){S.err={prod:"Escribe al menos un dato. Si no hiciste nada, escribe 0."};render();return}
+  PROD.forEach(function(p){r[p[0]]=d[p[0]]||""});
+  touch(r);save();toast(navigator.onLine?"Producción guardada":"Guardado en el teléfono");go("home");
+}
+function doLogin(){
+  var c=String(S.draft.Codigo||"").trim().toUpperCase();
+  if(!c){S.err={Codigo:"Escribe el código."};render();return}
+  if(S.busy)return;S.busy=true;S.err={};render();
+  api({action:"login",codigo:c}).then(function(res){
+    S.busy=false;
+    if(res&&res.ok){
+      if(S.profile&&S.profile.Codigo!==c)S.day=null;
+      S.profile={Codigo:c,Empresa:res.empresa,Brigada:res.brigada,Km:!!res.km};
+      persist();toast("Listo. La app ya sabe quién eres");go("home");sync();
+    }else{S.err={Codigo:"Ese código no existe. Revísalo o pídelo a tu empresa."};render()}
+  }).catch(function(e){
+    S.busy=false;
+    S.err={Codigo:e&&e.code==="config"?"La app no está configurada todavía. Avisa al administrador.":"No se pudo conectar. Revisa tu señal e intenta de nuevo."};render();
+  });
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener("click",function(ev){
+  var chip=ev.target.closest("[data-chip]");
+  if(chip){var f=chip.getAttribute("data-chip");S.draft[f]=chip.getAttribute("data-val");delete S.err[f];
+    chip.parentNode.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed",String(c===chip))});return}
+  var b=ev.target.closest("[data-act]");if(!b)return;
+  var a=b.getAttribute("data-act");
+  if(a==="home")go("home");
+  else if(a==="edit"){var re=S.recs.filter(function(x){return x._k===S.sel})[0];if(re){S.draft={};EDIT.concat(PROD.map(function(q){return q[0]})).forEach(function(k){S.draft[k]=re[k]||""});S.editing=true;go("new",re._k)}}
+  else if(a==="del"){S.confirmDel=true;render()}
+  else if(a==="del-no"){S.confirmDel=false;render()}
+  else if(a==="del-yes"){var rd=S.recs.filter(function(x){return x._k===S.sel})[0];
+    if(rd){S.recs=S.recs.filter(function(x){return x!==rd});S.dels.push({k:rd._k,c:rd._c});applyDay();ensureDayRow();save();toast("Postes borrados")}go("home")}
+  else if(a==="new"){S.editing=false;if(!dayInfo()){S.afterDay=true;S.draft={PT:"",ID:"",hi:"",ht:"",km:""};go("day")}else{newDraft();go("new")}}
+  else if(a==="day"){var di=dayInfo();S.afterDay=false;S.draft={PT:di?di.PT:"",ID:di?di.ID:"",hi:di?di.hi:"",ht:di?di.ht:"",km:di?di.km:""};go("day")}
+  else if(a==="foto")openCam(b.getAttribute("data-fase"));
+  else if(a==="ver")verFoto(b.getAttribute("data-id"));
+  else if(a==="cam-x")camClose();
+  else if(a==="cam-shoot")camShoot();
+  else if(a==="cam-use")camUse();
+  else if(a==="cam-redo"){if(CAM){CAM.shot=null;CAM.st="live";CAM.sig="";if(!camLive())camStream();camUi()}}
+  else if(a==="cam-retry"){var tf=CAM&&CAM.fase;camClose();if(tf)openCam(tf)}
+  else if(a==="cam-clock")relojMedir();
+  else if(a==="vis-x")visClose();
+  else if(a==="save-day")saveDay();
+  else if(a==="save-new")saveNew();
+  else if(a==="open"){var id=b.getAttribute("data-id"),r=S.recs.filter(function(x){return x._k===id})[0];
+    if(r){S.draft={};PROD.forEach(function(p){S.draft[p[0]]=r[p[0]]||""});go("finish",id)}}
+  else if(a==="save-finish")saveFinish();
+  else if(a==="save-profile")doLogin();
+  else if(a==="change-profile"){S.draft={Codigo:""};go("setup")}
+});
+document.addEventListener("focusout",function(ev){
+  var t=ev.target;if(!t||(t.id!=="f-hi"&&t.id!=="f-ht"))return;
+  var nv=normHora(t.value);if(nv!==t.value){t.value=nv;S.draft[t.id==="f-hi"?"hi":"ht"]=nv}
+});
+document.addEventListener("input",function(ev){
+  var t=ev.target;
+  if(t.id==="f-hi"||t.id==="f-ht"){var dg=t.value.replace(/\D/g,"").slice(0,4),hv=dg.length===4?dg.slice(0,2)+":"+dg.slice(2):dg.length===3?dg[0]+":"+dg.slice(1):dg;if(hv!==t.value)t.value=hv;var hk=t.id==="f-hi"?"hi":"ht";S.draft[hk]=hv;delete S.err[hk];var hn=t.parentNode.querySelector(".err");if(hn)hn.remove();return}
+  if(t.id==="f-km"){var kv=t.value.replace(",",".").replace(/[^0-9.]/g,"").replace(/(\..*)\./g,"$1");if(kv!==t.value)t.value=kv;S.draft.km=kv;delete S.err.km;return}
+  var f=t.getAttribute&&t.getAttribute("data-f");if(!f)return;
+  var v=t.value;
+  if(f==="PT")v=v.toUpperCase().replace(/[^R0-9]/g,"").slice(0,7);
+  else if(f==="Codigo")v=v.toUpperCase().replace(/\s/g,"");
+  else if(["Poste_Inicio","Poste_Fin"].indexOf(f)>-1||t.getAttribute("data-kind")==="n")v=v.replace(/\D/g,"");
+  else if(t.getAttribute("data-kind")==="d")v=v.replace(",",".").replace(/[^0-9.]/g,"").replace(/(\..*)\./g,"$1");
+  if(v!==t.value)t.value=v;
+  S.draft[f]=v;delete S.err[f];
+  var nx=t.parentNode.querySelector(".err");if(nx)nx.remove();
+});
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="Enter"&&ev.target.id==="f-Codigo"){ev.preventDefault();doLogin()}
+  if(ev.key==="Escape"){if(CAM)camClose();else visClose()}
+});
+window.addEventListener("resize",function(){if(CAM)camFit()});
+window.addEventListener("online",function(){if(S.view==="home")render();sync()});
+window.addEventListener("offline",function(){if(S.view==="home")render()});
+document.addEventListener("visibilitychange",function(){
+  if(CAM){if(document.hidden)camStop();else{if(CAM.st!=="review"&&CAM.st!=="err"){CAM.st="start";camStream();camUi()}relojMedir()}}
+  if(!document.hidden){if(S.view==="home")render();sync()}
+});
+setInterval(function(){if(unsynced())sync()},30000);
+
+load();
+if(!S.profile){S.view="setup";S.draft={Codigo:""}}
+render();sync();
+setTimeout(limpiarFotos,3000);
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+
+</script>
+</body>
+</html>
