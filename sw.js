@@ -3,7 +3,7 @@
    - Si la red se queda "pensando" (señal a medias), espera hasta ESPERA milisegundos y abre la versión guardada,
      en vez de dejar la pantalla en blanco. La actualización sigue descargándose por detrás y se usa la próxima vez.
    - Si todavía no hay nada guardado (primera vez), no queda más que esperar a la red. */
-var C = "jornada-v5";
+var C = "jornada-v6";
 var FILES = ["./", "index.html", "config.js", "manifest.webmanifest", "logo-cooprel.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png",
   "font-barlow-400.woff2", "font-barlow-500.woff2", "font-barlow-600.woff2", "font-barlow-condensed-600.woff2", "font-barlow-condensed-700.woff2"];
 var ESPERA = 5000;   /* milisegundos que se espera a la red antes de abrir lo guardado */

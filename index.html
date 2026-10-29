@@ -154,23 +154,43 @@ body.cam-open{overflow:hidden}
 <script src="config.js"></script>
 <script>
 var CFG=window.APP_CONFIG||{};
-var VER="5", PTRE=/^R\d{6}$/, KEY="faenas-app-v1";
+var VER="6", PTRE=/^R\d{6}$/, KEY="faenas-app-v1";
 var SEND=["Fecha","PT","ID","Propietario","Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Hora_Inicio","Hora_Termino","Kilometraje","Tala_20_30","Tala_31_60","Tala_Mas_60","Poda","Roce_Debil","Roce_Fuerte"];
 var ALIM=["1","2","3","4","5"], COMUNAS=["La Unión","Río Bueno","Lago Ranco","San Pablo"];
 var PROD=[["Tala_20_30","Tala 20 a 30 m","n"],["Tala_31_60","Tala 31 a 60 m","n"],["Tala_Mas_60","Tala más de 60 m","n"],["Poda","Poda","n"],["Roce_Debil","Roce débil (m)","d"],["Roce_Fuerte","Roce fuerte (m)","d"]];
+/* Brigadas de levantamiento: en vez de producción anotan lo que hay DENTRO y FUERA de la faja de seguridad (no hay poda). Los nombres de los datos los lee el servidor (filaLev_ en Code.gs). */
+var SEND_LEV=["Fecha","PT","ID","Propietario","Fono","Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Hora_Inicio","Hora_Termino","Kilometraje",
+  "Dentro_Tala_20_30","Dentro_Tala_31_60","Dentro_Tala_Mas_60","Dentro_Roce_Debil","Dentro_Roce_Fuerte","Fuera_Tala_20_30","Fuera_Tala_31_60","Fuera_Tala_Mas_60","Especie"];
+var DENTRO=[["Dentro_Tala_20_30","Tala 20 a 30 m","n"],["Dentro_Tala_31_60","Tala 31 a 60 m","n"],["Dentro_Tala_Mas_60","Tala más de 60 m","n"],["Dentro_Roce_Debil","Roce débil (m)","d"],["Dentro_Roce_Fuerte","Roce fuerte (m)","d"]];
+var FUERA=[["Fuera_Tala_20_30","Tala 20 a 30 m","n"],["Fuera_Tala_31_60","Tala 31 a 60 m","n"],["Fuera_Tala_Mas_60","Tala más de 60 m","n"]];
+var LEVN=DENTRO.concat(FUERA).map(function(q){return q[0]});
 var S={recs:[],dels:[],dq:[],pq:[],lc:0,lastOk:0,copied:false,docSyncing:false,docErr:"",fotoSyncing:false,fotoErr:"",day:null,profile:null,view:"home",sel:null,draft:{},err:{},busy:false,syncing:false,syncErr:"",confirmDel:false,editing:false,afterDay:false};
 var $app=document.getElementById("app");
 
 function cobraKm(){return !!(S.profile&&S.profile.Km)}
 function kmField(){return cobraKm()?'<div><label class="lbl" for="f-km">Kilometraje del día (km)</label><input id="f-km" type="text" inputmode="decimal" autocomplete="off" value="'+esc(S.draft.km)+'">'+errOf("km")+'<p class="note" style="margin-top:4px">Tu brigada cobra kilometraje. Se anota una sola vez al día.</p></div>':""}
 function kmLine(b){return cobraKm()?'<p class="note">Kilometraje del día: <b>'+(b&&b.km?esc(b.km)+" km":"sin registrar")+"</b></p>":""}
+/* Tipo de brigada: "forestal" (tala y roce; es lo normal) o "levantamiento". Lo dice el servidor al entrar con el código.
+   Cada registro guarda su tipo en _t ("l" = levantamiento; lo que no lo trae es forestal, como los de la versión anterior), así nunca se mezclan. */
+function isLev(){return !!(S.profile&&S.profile.Tipo==="levantamiento")}
+function tipoDe(r){return r&&r._t==="l"?"l":"f"}
+function tipoMio(){return isLev()?"l":"f"}
+function nombreTipo(t){return t==="l"||t==="levantamiento"?"levantamiento":"forestal"}
+/* El servidor dijo de qué tipo es de verdad esta brigada (el administrador la pudo cambiar después de que entraron al teléfono).
+   Si es la brigada de este teléfono, la app pasa al formulario que corresponde y vuelve al inicio. Los registros del otro tipo no se pierden ni se mezclan: quedan guardados sin enviar. */
+function tipoNota(c,t){
+  if(!S.profile||S.profile.Codigo!==c||(t!=="levantamiento"&&t!=="forestal")||S.profile.Tipo===t)return false;
+  S.profile.Tipo=t;persist();
+  if(!CAM){S.editing=false;S.confirmDel=false;S.view="home";S.sel=null;S.draft={};S.err={}}
+  return true;
+}
 
 function p2(n){return String(n).padStart(2,"0")}
 function isoOf(d){return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())}
 function today(){return isoOf(new Date())}
 function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return isoOf(d)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function blank(){var r={};SEND.forEach(function(c){r[c]=""});return r}
+function blank(){var r={};(isLev()?SEND_LEV:SEND).forEach(function(c){r[c]=""});r._t=tipoMio();return r}
 function touch(r){r.synced=false;r._v=(r._v||0)+1}
 
 function load(){
@@ -180,7 +200,7 @@ function load(){
 }
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({recs:S.recs,dels:S.dels,dq:S.dq,pq:S.pq,profile:S.profile,day:S.day,lastOk:S.lastOk,lc:S.lc}))}catch(e){}}
 function save(){persist();scheduleSync()}
-function mine(){return S.recs.filter(function(r){return r.Fecha===today()&&S.profile&&r._c===S.profile.Codigo})}
+function mine(){return S.recs.filter(function(r){return r.Fecha===today()&&S.profile&&r._c===S.profile.Codigo&&tipoDe(r)===tipoMio()})}
 function dayInfo(){return S.day&&S.day.fecha===today()?S.day:null}
 function applyDay(){
   var d=dayInfo();if(!d)return;
@@ -197,7 +217,10 @@ function ensureDayRow(){
   r._k="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);r._c=S.profile.Codigo;
   touch(r);S.recs.push(r);applyDay();
 }
-function hasProd(r){return PROD.some(function(q){return r[q[0]]!==""&&r[q[0]]!=null})}
+function hasProd(r){
+  if(tipoDe(r)==="l")return !!String(r.Especie||"").trim()||LEVN.some(function(k){return r[k]!==""&&r[k]!=null});
+  return PROD.some(function(q){return r[q[0]]!==""&&r[q[0]]!=null});
+}
 function pending(){return real().filter(function(r){return !hasProd(r)})}
 function unsynced(){return S.recs.filter(function(r){return !r.synced}).length+S.dels.length+S.dq.length+fotosPend().length}
 function hhmm(t){var d=new Date(t);return p2(d.getHours())+":"+p2(d.getMinutes())}
@@ -215,7 +238,7 @@ function api(payload,ms){
     .then(function(r){clearTimeout(to);return r.json()})
     .then(function(j){if(j&&j.now!=null)relojNota(Number(j.now),t0,Date.now());return j});
 }
-function wire(r){var o={k:r._k};SEND.forEach(function(c){o[c]=r[c]});return o}
+function wire(r){var o={k:r._k};(tipoDe(r)==="l"?SEND_LEV:SEND).forEach(function(c){o[c]=r[c]});return o}
 /* Fotos: se guardan en el teléfono (IndexedDB) hasta que se envían a Drive. */
 function idbOpen(){return new Promise(function(res,rej){
   if(!window.indexedDB)return rej(new Error("idb"));
@@ -243,8 +266,18 @@ var FOTOPERM=["grande","tipo_archivo","tipo","vacio","datos","fecha","fase","lim
 var ICO_CAM='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.2" r="3.5"/></svg>';
 var MSG_MALA="Hay una foto que el servidor no aceptó (marcada con !). Sigue guardada en este teléfono. Avisa al administrador.";
 var CAM=null,thURL={};
+/* Forestal saca dos clases de fotos (antes y después). Levantamiento, una sola. "cam" es lo que se lee en la cámara y en la franja de la foto; "col" es el color de esa etiqueta. */
+var FASES={
+  antes:{tit:"Fotos de antes",nota:"Tómalas antes de empezar la tala y el roce.",btn:"Tomar foto de antes",cam:"ANTES",lim:" de antes",col:"#F2B84B"},
+  despues:{tit:"Fotos de después",nota:"Tómalas cuando termines la tala y el roce.",btn:"Tomar foto de después",cam:"DESPUÉS",lim:" de después",col:"#4DB07A"},
+  levantamiento:{tit:"Fotos del levantamiento",nota:"Fotografía la línea, los postes y lo que encontraste en el tramo.",btn:"Tomar foto",cam:"LEVANTAMIENTO",lim:"",col:"#6DB9E8"}
+};
 function fotosDe(r,fase){return (r&&r.fotos||[]).filter(function(f){return f.fase===fase})}
-function fotosTxt(r){var a=fotosDe(r,"antes").length,d=fotosDe(r,"despues").length;return a||d?"Fotos: "+a+" antes · "+d+" después":""}
+function fotosTxt(r){
+  var a=fotosDe(r,"antes").length,d=fotosDe(r,"despues").length,l=fotosDe(r,"levantamiento").length;
+  if(l&&!a&&!d)return "Fotos: "+l;
+  return a||d?"Fotos: "+a+" antes · "+d+" después":"";
+}
 /* Una foto que el servidor rechazó para siempre queda en la cola, marcada. Al cambiar la versión de la app se vuelve a intentar. */
 function colaDe(id){return S.pq.filter(function(q){return q.id===id})[0]}
 function fotoMala(id){var q=colaDe(id);return !!(q&&q.bad&&q.bv===VER)}
@@ -321,9 +354,9 @@ function sello(cv,info){
   L.push(fPos(info.pos));
   var bh=pad*2+lh*L.length,y0=h-bh;
   c.fillStyle="rgba(0,0,0,.70)";c.fillRect(0,y0,w,bh);c.textBaseline="middle";c.textAlign="left";
-  var tx=info.fase==="antes"?"ANTES":"DESPUÉS";c.font="700 "+Math.round(s*1.05)+"px "+fam;
+  var FX=FASES[info.fase]||FASES.despues,tx=FX.cam;c.font="700 "+Math.round(s*1.05)+"px "+fam;
   var cw=Math.round(c.measureText(tx).width+s*1.3),ch=Math.round(lh*.86),cx=w-pad-cw,cy=Math.round(y0+pad+lh*.5-ch/2);
-  c.fillStyle=info.fase==="antes"?"#F2B84B":"#4DB07A";rrect(c,cx,cy,cw,ch,Math.round(ch*.28));c.fill();
+  c.fillStyle=FX.col;rrect(c,cx,cy,cw,ch,Math.round(ch*.28));c.fill();
   c.fillStyle="#10201A";c.textAlign="center";c.fillText(tx,cx+cw/2,cy+ch/2+1);
   c.textAlign="left";
   for(var i=0;i<L.length;i++){
@@ -342,9 +375,9 @@ function hydrate(){
   });
 }
 function fotoCard(r,fase){
-  var L=fotosDe(r,fase),antes=fase==="antes",h='<section class="card"><div class="row"><h2>Fotos de '+(antes?"antes":"después")+'</h2>'+(L.length?'<span class="note">'+L.length+(L.length===1?" foto":" fotos")+'</span>':"")+'</div>';
-  h+='<p class="note">'+(antes?"Tómalas antes de empezar la tala y el roce.":"Tómalas cuando termines la tala y el roce.")+'</p>';
-  if(!L.length){h+='<button type="button" class="btn ico" data-act="foto" data-fase="'+fase+'">'+ICO_CAM+'Tomar foto de '+(antes?"antes":"después")+'</button>'}
+  var L=fotosDe(r,fase),F=FASES[fase],h='<section class="card"><div class="row"><h2>'+F.tit+'</h2>'+(L.length?'<span class="note">'+L.length+(L.length===1?" foto":" fotos")+'</span>':"")+'</div>';
+  h+='<p class="note">'+F.nota+'</p>';
+  if(!L.length){h+='<button type="button" class="btn ico" data-act="foto" data-fase="'+fase+'">'+ICO_CAM+F.btn+'</button>'}
   else{
     h+='<div class="fotos">';
     L.forEach(function(f){var m=!f.sent&&fotoMala(f.id);h+='<button type="button" class="th" data-act="ver" data-id="'+esc(f.id)+'" aria-label="Ver foto"><img data-th="'+esc(f.id)+'" alt=""><span class="st '+(f.sent?"ok":m?"bad":"pen")+'">'+(f.sent?"✓":m?"!":"↑")+'</span></button>'});
@@ -373,11 +406,11 @@ function refreshFotos(){
 function camEl(){var el=document.getElementById("cam");if(!el){el=document.createElement("div");el.id="cam";el.className="cam";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","Cámara");document.body.appendChild(el)}return el}
 function openCam(fase){
   var r=S.recs.filter(function(x){return x._k===S.sel})[0];if(!r||CAM)return;
-  if(fotosDe(r,fase).length>=MAXFOTOS){toast("Ya tienes "+MAXFOTOS+" fotos "+(fase==="antes"?"de antes":"de después"));return}
+  if(fotosDe(r,fase).length>=MAXFOTOS){toast("Ya tienes "+MAXFOTOS+" fotos"+FASES[fase].lim);return}
   if(document.fonts&&document.fonts.load){try{document.fonts.load('600 20px "Barlow"');document.fonts.load('500 20px "Barlow"');document.fonts.load('700 20px "Barlow"')}catch(e){}}
   CAM={k:r._k,fase:fase,st:"start",gps:"wait",pos:null,shot:null,n:0,t0:Date.now(),msg:"",sig:"",rk:"",rkT:0};
   var el=camEl();el.hidden=false;document.body.classList.add("cam-open");
-  el.innerHTML='<div class="cam-top"><button type="button" class="cam-x" data-act="cam-x" aria-label="Cerrar la cámara">✕ Cerrar</button><b>Foto de '+(fase==="antes"?"ANTES":"DESPUÉS")+'</b><span class="cam-n" id="cam-n"></span></div>'+
+  el.innerHTML='<div class="cam-top"><button type="button" class="cam-x" data-act="cam-x" aria-label="Cerrar la cámara">✕ Cerrar</button><b>Foto de '+FASES[fase].cam+'</b><span class="cam-n" id="cam-n"></span></div>'+
     '<div class="cam-gps" id="cam-gps" role="status"></div><div class="cam-gps clk" id="cam-clk" role="status"></div>'+
     '<div class="cam-stage" id="cam-stage"><div class="cam-frame" id="cam-frame"><video id="cam-v" playsinline muted autoplay></video><canvas id="cam-o"></canvas><canvas id="cam-r" hidden></canvas></div><div class="cam-msg" id="cam-msg" hidden></div></div>'+
     '<div class="cam-bot" id="cam-bot"></div>';
@@ -479,7 +512,7 @@ function camUse(){
       (r.fotos=r.fotos||[]).push({id:id,fase:m.fase,ts:m.ts,sent:false});
       S.pq.push({id:id,k:r._k,c:S.profile.Codigo,f:today(),fase:m.fase,ts:m.ts,lat:m.lat,lon:m.lon,acc:m.acc,w:m.w,h:m.h,vf:sh.info.vf,lc:sh.info.lc,dev:sh.info.dev,hs:hs,ip:sh.info.proyecto||"",cx:ctxDe(r)});
       persist();CAM.n++;CAM.shot=null;CAM.st="live";CAM.sig="";render();
-      if(fotosDe(r,CAM.fase).length>=MAXFOTOS){var tf=CAM.fase;camClose();toast("Ya tienes "+MAXFOTOS+" fotos "+(tf==="antes"?"de antes":"de después"))}else camUi();
+      if(fotosDe(r,CAM.fase).length>=MAXFOTOS){var tf=CAM.fase;camClose();toast("Ya tienes "+MAXFOTOS+" fotos"+FASES[tf].lim)}else camUi();
       scheduleSync();
     }).catch(function(){if(!CAM)return;CAM.saving=false;camErr("No se pudo guardar la foto en este teléfono. Libera espacio e intenta de nuevo.")});
   },"image/jpeg",CAL_V)},"image/jpeg",CALIDAD);
@@ -494,7 +527,7 @@ function camClose(){
 function verFoto(id){
   var r=S.recs.filter(function(x){return x._k===S.sel})[0],f=(r&&r.fotos||[]).filter(function(x){return x.id===id})[0];if(!f)return;
   var el=document.getElementById("vis");if(!el){el=document.createElement("div");el.id="vis";el.className="vis";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","Foto");document.body.appendChild(el)}
-  el.innerHTML='<div class="cam-top"><button type="button" class="cam-x" data-act="vis-x" aria-label="Cerrar la foto">✕ Cerrar</button><b>Foto de '+(f.fase==="antes"?"ANTES":"DESPUÉS")+'</b><span class="cam-n">'+(f.sent?"Enviada":fotoMala(f.id)?"No aceptada":"Por enviar")+'</span></div><div class="cam-stage"><img id="vis-i" alt="Foto"></div>';
+  el.innerHTML='<div class="cam-top"><button type="button" class="cam-x" data-act="vis-x" aria-label="Cerrar la foto">✕ Cerrar</button><b>Foto de '+(FASES[f.fase]||FASES.despues).cam+'</b><span class="cam-n">'+(f.sent?"Enviada":fotoMala(f.id)?"No aceptada":"Por enviar")+'</span></div><div class="cam-stage"><img id="vis-i" alt="Foto"></div>';
   el.hidden=false;document.body.classList.add("cam-open");
   idbGet("v|"+id).then(function(v){if(v&&v.blob){var i=document.getElementById("vis-i");if(i){if(!thURL[id])thURL[id]=URL.createObjectURL(v.blob);i.src=thURL[id]}}}).catch(function(){});
 }
@@ -514,7 +547,10 @@ function syncFotos(){
         return api({action:"foto",codigo:q.c,k:q.k,id:q.id,fase:q.fase,ts:q.ts,lat:q.lat,lon:q.lon,acc:q.acc,w:q.w,h:q.h,vf:q.vf,lc:q.lc,dev:q.dev,hash:q.hs||"",idp:q.ip||"",ctx:cx,data:data},120000);
       }).then(function(res){
         if(!res||!res.ok){
-          if(res&&FOTOPERM.indexOf(res.error)>-1){q.bad=res.error;q.bv=VER;persist();refreshFotos();return}     /* no se arregla reintentando: la foto NO se borra; queda marcada */
+          if(res&&FOTOPERM.indexOf(res.error)>-1){
+            q.bad=res.error;q.bv=VER;
+            if(res.error==="tipo")tipoNota(q.c,res.tipo);          /* la brigada es del otro tipo: la foto queda guardada en el teléfono, marcada */
+            persist();refreshFotos();return}     /* no se arregla reintentando: la foto NO se borra; queda marcada */
           var e=new Error("foto");e.code=res&&res.error;throw e}
         markSent(q);S.pq=S.pq.filter(function(x){return x.id!==q.id});S.lastOk=Date.now();
         /* Si el tramo se corrigió mientras la foto viajaba, se vuelve a enviar el tramo: así la foto también muestra los datos nuevos. */
@@ -575,15 +611,19 @@ function sync(){
   syncDocs();syncFotos();
   if(S.syncing||!navigator.onLine||!CFG.API_URL||!S.profile&&!S.recs.length&&!S.dels.length)return;
   var groups={};
-  S.recs.forEach(function(r){if(!r.synced)(groups[r._c]=groups[r._c]||{u:[],d:[]}).u.push(r)});
-  S.dels.forEach(function(x){(groups[x.c]=groups[x.c]||{u:[],d:[]}).d.push(x)});
+  function grp(c,t){var k=c+"|"+t;return groups[k]||(groups[k]={c:c,t:t,u:[],d:[]})}
+  S.recs.forEach(function(r){if(!r.synced)grp(r._c,tipoDe(r)).u.push(r)});
+  S.dels.forEach(function(x){grp(x.c,x.t==="l"?"l":"f").d.push(x)});
   var codes=Object.keys(groups);
   if(!codes.length){if(S.syncErr){S.syncErr="";if(S.view==="home")render()}return}
   S.syncing=true;
   var chain=Promise.resolve(),err="";
-  codes.forEach(function(c){chain=chain.then(function(){
-    var g=groups[c],vs=g.u.map(function(r){return r._v});
-    return api({action:"sync",codigo:c,upserts:g.u.map(wire),deletes:g.d.map(function(x){return x.k})}).then(function(res){
+  codes.forEach(function(key){chain=chain.then(function(){
+    var g=groups[key],vs=g.u.map(function(r){return r._v});
+    return api({action:"sync",codigo:g.c,tipo:nombreTipo(g.t),upserts:g.u.map(wire),deletes:g.d.map(function(x){return x.k})}).then(function(res){
+      if(res&&!res.ok&&res.error==="tipo"){        /* la brigada es del otro tipo: estos registros no se envían (quedan guardados) y los demás grupos siguen */
+        tipoNota(g.c,res.tipo);err=err||"tipo";return;
+      }
       if(!res||!res.ok){var e=new Error("sync");e.code=res&&res.error;throw e}
       g.u.forEach(function(r,i){if(r._v===vs[i])r.synced=true});
       S.dels=S.dels.filter(function(x){return g.d.indexOf(x)<0});S.lastOk=Date.now();
@@ -604,7 +644,7 @@ function chips(field,opts){
 function field(id,label,opts){
   opts=opts||{};
   var e=S.err[id]?'<p class="err">'+esc(S.err[id])+'</p>':"";
-  return '<div><label class="lbl" for="f-'+id+'">'+label+'</label><input id="f-'+id+'" data-f="'+id+'" type="text" inputmode="'+(opts.mode||"text")+'" autocomplete="off" '+(opts.caps?'autocapitalize="characters" ':'')+'placeholder="'+esc(opts.ph||"")+'" value="'+esc(S.draft[id])+'">'+e+'</div>';
+  return '<div><label class="lbl" for="f-'+id+'">'+label+'</label><input id="f-'+id+'" data-f="'+id+'" type="text" inputmode="'+(opts.mode||"text")+'" autocomplete="off" '+(opts.caps?'autocapitalize="characters" ':'')+(opts.max?'maxlength="'+opts.max+'" ':'')+'placeholder="'+esc(opts.ph||"")+'" value="'+esc(S.draft[id])+'">'+e+'</div>';
 }
 function errOf(id){return S.err[id]?'<p class="err">'+esc(S.err[id])+'</p>':""}
 function toMin(t){var a=t.split(":");return parseInt(a[0],10)*60+parseInt(a[1],10)}
@@ -620,8 +660,9 @@ function pill(){
 }
 function viewHome(){
   var pend=pending(),all=real(),done=all.filter(hasProd);
-  var h='<div class="top"><div><h1>Jornada</h1><p class="sub">'+esc(S.profile.Empresa)+' · '+esc(S.profile.Brigada)+'<br><button type="button" class="back" data-act="change-profile" style="min-height:36px;padding:0;display:inline">Cambiar brigada</button></p></div>'+pill()+'</div>';
+  var h='<div class="top"><div><h1>Jornada</h1><p class="sub">'+esc(S.profile.Empresa)+' · '+esc(S.profile.Brigada)+(isLev()?' · Levantamiento':'')+'<br><button type="button" class="back" data-act="change-profile" style="min-height:36px;padding:0;display:inline">Cambiar brigada</button></p></div>'+pill()+'</div>';
   if(S.syncErr==="codigo"||S.docErr==="codigo"||S.fotoErr==="codigo")h+='<p class="err">El código de tu brigada ya no es válido. Avisa al administrador.</p>';
+  if(S.syncErr==="tipo")h+='<p class="err">Tu brigada es de '+nombreTipo(tipoMio())+', pero en este teléfono quedaron registros guardados de otro tipo y no se pueden enviar. Avisa al administrador.</p>';
   var di=dayInfo(),hi=di&&di.hi||"",ht=di&&di.ht||"";
   h+='<section class="card"><div class="row"><h2>Datos del día</h2></div>';
   if(di){
@@ -636,7 +677,7 @@ function viewHome(){
   h+='</section>';
   h+='<section style="display:flex;flex-direction:column;gap:8px"><h2>Postes por completar</h2>';
   if(!pend.length)h+='<p class="note">Todo al día. Toca «Agregar postes» para el siguiente.</p>';
-  pend.forEach(function(r){h+=item(r,'<span class="tag warn">Falta producción</span>')});
+  pend.forEach(function(r){h+=item(r,'<span class="tag warn">'+(isLev()?"Falta levantamiento":"Falta producción")+'</span>')});
   h+='</section>';
   if(done.length){h+='<section style="display:flex;flex-direction:column;gap:8px"><h2>Postes listos hoy</h2>';done.forEach(function(r){h+=item(r,'<span class="tag ok">Listo</span>')});h+='</section>'}
   h+=foot();
@@ -653,8 +694,30 @@ function item(r,tag){
   var ft=fotosTxt(r);
   return '<button class="item" data-act="open" data-id="'+esc(r._k)+'"><span><b>Postes '+esc(r.Poste_Inicio)+' a '+esc(r.Poste_Fin)+'</b><small>'+esc(r.Comuna)+' · '+esc(r.Sector)+(r.synced?'':' · por enviar')+'</small>'+(ft?'<small>'+ft+'</small>':'')+'</span>'+tag+'</button>';
 }
-function prodGrid(src){
-  return '<div class="grid2">'+PROD.map(function(q){return '<div><label class="lbl" for="f-'+q[0]+'">'+q[1]+'</label><input id="f-'+q[0]+'" data-f="'+q[0]+'" data-kind="'+q[2]+'" type="text" inputmode="'+(q[2]==="d"?"decimal":"numeric")+'" autocomplete="off" value="'+esc(src[q[0]])+'"></div>'}).join("")+'</div>';
+function grid(list,src){
+  return '<div class="grid2">'+list.map(function(q){return '<div><label class="lbl" for="f-'+q[0]+'">'+q[1]+'</label><input id="f-'+q[0]+'" data-f="'+q[0]+'" data-kind="'+q[2]+'" type="text" inputmode="'+(q[2]==="d"?"decimal":"numeric")+'" autocomplete="off" value="'+esc(src[q[0]])+'"></div>'}).join("")+'</div>';
+}
+function prodGrid(src){return grid(PROD,src)}
+/* Levantamiento: cuando ya se escribió una especie o algún dato, el aviso «falta completar» desaparece. */
+function avisoProdFuera(){
+  if(!S.err.prod)return;
+  delete S.err.prod;var pe=document.querySelector("#app p.err");if(pe)pe.remove();
+}
+/* Lo que anota una brigada de levantamiento en cada tramo (en vez de la producción). */
+function levCards(){
+  var h='<section class="card"><h2>Dentro de faja</h2><p class="note">Lo que hay dentro de la faja de seguridad. Escribe solo lo que encontraste; lo demás déjalo vacío.</p>'+grid(DENTRO,S.draft)+'</section>';
+  h+='<section class="card"><h2>Fuera de faja</h2><p class="note">Lo que hay fuera de la faja de seguridad. Lo que no encontraste, déjalo vacío.</p>'+grid(FUERA,S.draft)+'</section>';
+  h+='<section class="card"><h2>Especie</h2><p class="note">Escribe la especie o las especies que hay en el tramo, separadas por coma. Si no hay árboles, escribe «Pradera».</p>'+field("Especie","Especie",{ph:"Ej: Hualle, Coihue",max:200})+errOf("prod")+'</section>';
+  return h;
+}
+/* Atajo: el último propietario que se anotó hoy (en los recorridos reales, 7 de cada 10 tramos seguidos tienen el mismo). Solo lo copia si se toca. */
+function propAnterior(){
+  var rs=real().filter(function(r){return r._k!==S.sel&&String(r.Propietario||"").trim()});
+  return rs.length?rs[rs.length-1]:null;
+}
+function propAtajo(){
+  var p=S.editing?null:propAnterior();
+  return p?'<button type="button" class="btn small" data-act="prop-igual">Igual al anterior: '+esc(p.Propietario)+'</button>':"";
 }
 function viewNew(){
   var h='<button class="back" data-act="home">‹ Volver</button><h1>'+(S.editing?"Corregir postes":"Agregar postes")+'</h1><p class="sub">'+esc(S.profile.Empresa)+' · '+esc(S.profile.Brigada)+' · N° de PT '+esc(dayInfo().PT)+' · ID '+esc(dayInfo().ID)+'</p>';
@@ -664,10 +727,16 @@ function viewNew(){
   h+=field("Sector","Sector",{ph:"Nombre del sector"});
   h+='<div><span class="lbl">Alimentador</span>'+chips("Alimentador",ALIM)+errOf("Alimentador")+'</div>';
   h+='<div class="grid2">'+field("Poste_Inicio","Poste inicio",{mode:"numeric",ph:"1"})+field("Poste_Fin","Poste fin",{mode:"numeric",ph:"2"})+'</div>';
-  h+=field("Propietario","Propietario del poste",{ph:"Nombre y apellido"});
-  h+='<p class="note">Es el dueño del poste donde trabajas. Escríbelo en cada registro, porque puede cambiar de un poste a otro.</p>';
+  if(isLev()){
+    h+=field("Propietario","Propietario",{ph:"Nombre y apellido"})+propAtajo()+field("Fono","Fono del propietario",{mode:"tel",ph:"912345678"});
+    h+='<p class="note">Si no pudiste saber quién es el propietario o su fono, déjalos vacíos.</p>';
+  }else{
+    h+=field("Propietario","Propietario del poste",{ph:"Nombre y apellido"});
+    h+='<p class="note">Es el dueño del poste donde trabajas. Escríbelo en cada registro, porque puede cambiar de un poste a otro.</p>';
+  }
   h+='</section>';
-  h+='<section class="card"><h2>Producción</h2><p class="note">Si ya hiciste el trabajo, anótalo ahora. Si no, déjalo vacío y lo completas después desde Pendientes.</p>'+prodGrid(S.draft)+'</section>';
+  if(isLev())h+='<p class="note">Si ya hiciste el levantamiento de estos postes, anótalo ahora. Si no, déjalo vacío y lo completas después desde «Postes por completar».</p>'+levCards();
+  else h+='<section class="card"><h2>Producción</h2><p class="note">Si ya hiciste el trabajo, anótalo ahora. Si no, déjalo vacío y lo completas después desde Pendientes.</p>'+prodGrid(S.draft)+'</section>';
   h+='<button class="btn main" data-act="save-new">'+(S.editing?"Guardar cambios":"Guardar")+'</button>';
   return h;
 }
@@ -675,12 +744,18 @@ function viewFinish(){
   var r=S.recs.filter(function(x){return x._k===S.sel})[0];
   if(!r)return '<button class="back" data-act="home">‹ Volver</button><p>No se encontró el registro.</p>';
   var h='<button class="back" data-act="home">‹ Volver</button><h1>Postes '+esc(r.Poste_Inicio)+' a '+esc(r.Poste_Fin)+'</h1><p class="sub">'+esc(r.Comuna)+' · '+esc(r.Sector)+'</p>';
-  h+=fotoCard(r,"antes")+fotoCard(r,"despues");
-  h+='<section class="card"><h2>Producción</h2>'+prodGrid(S.draft);
-  h+='<p class="note">Escribe solo lo que hiciste. Lo demás déjalo vacío. Si no hiciste nada en este poste, escribe 0 en cualquiera.</p>'+errOf("prod")+'</section>';
-  h+='<button class="btn main" data-act="save-finish">Guardar producción</button>';
-  h+='<button class="btn small" data-act="edit">Corregir postes, comuna, sector o propietario</button>';
-  h+=S.confirmDel?'<div class="card"><p style="margin:0">¿Borrar estos postes? No se puede deshacer.'+(fotosDe(r,"antes").length+fotosDe(r,"despues").length?' Las fotos de este tramo no se borran: quedan guardadas como respaldo.':'')+'</p><div class="grid2"><button class="btn small" data-act="del-no">No, volver</button><button class="btn small main" data-act="del-yes">Sí, borrar</button></div></div>':'<button class="btn small" data-act="del">Borrar estos postes</button>';
+  if(tipoDe(r)==="l"){
+    h+=fotoCard(r,"levantamiento")+levCards();
+    h+='<button class="btn main" data-act="save-finish">Guardar levantamiento</button>';
+    h+='<button class="btn small" data-act="edit">Corregir postes, comuna, sector, propietario o fono</button>';
+  }else{
+    h+=fotoCard(r,"antes")+fotoCard(r,"despues");
+    h+='<section class="card"><h2>Producción</h2>'+prodGrid(S.draft);
+    h+='<p class="note">Escribe solo lo que hiciste. Lo demás déjalo vacío. Si no hiciste nada en este poste, escribe 0 en cualquiera.</p>'+errOf("prod")+'</section>';
+    h+='<button class="btn main" data-act="save-finish">Guardar producción</button>';
+    h+='<button class="btn small" data-act="edit">Corregir postes, comuna, sector o propietario</button>';
+  }
+  h+=S.confirmDel?'<div class="card"><p style="margin:0">¿Borrar estos postes? No se puede deshacer.'+((r.fotos||[]).length?' Las fotos de este tramo no se borran: quedan guardadas como respaldo.':'')+'</p><div class="grid2"><button class="btn small" data-act="del-no">No, volver</button><button class="btn small main" data-act="del-yes">Sí, borrar</button></div></div>':'<button class="btn small" data-act="del">Borrar estos postes</button>';
   return h;
 }
 function viewDay(){
@@ -724,7 +799,7 @@ function saveDay(){
 }
 function newDraft(){
   var d={};
-  ["Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Propietario"].concat(PROD.map(function(q){return q[0]})).forEach(function(k){d[k]=""});
+  claves(isLev()).forEach(function(k){d[k]=""});
   /* Del registro anterior de hoy se copian SOLO comuna, sector y alimentador (los postes no son siempre correlativos). */
   var rs=real(),p=rs.length?rs[rs.length-1]:null;
   S.copied=!!(p&&p.Comuna&&p.Sector&&p.Alimentador);
@@ -732,31 +807,51 @@ function newDraft(){
   S.draft=d;
 }
 var EDIT=["Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Propietario"];
+/* Los datos de un registro que se escriben en los formularios (cambian según el tipo de brigada). */
+function claves(lev){return lev?EDIT.concat(["Fono"],LEVN,["Especie"]):EDIT.concat(PROD.map(function(q){return q[0]}))}
+/* Del formulario al registro, y del registro al formulario (todo=true incluye también los postes, la comuna, el sector y el propietario). */
+function aplica(d,r){
+  claves(tipoDe(r)==="l").forEach(function(k){r[k]=String(d[k]==null?"":d[k]).trim()});
+}
+function alForm(r,d,todo){
+  var lev=tipoDe(r)==="l",ks=lev?LEVN.concat(["Especie"]):PROD.map(function(q){return q[0]});
+  if(todo)ks=EDIT.concat(lev?["Fono"]:[],ks);
+  ks.forEach(function(k){d[k]=r[k]==null?"":String(r[k])});
+}
 function saveNew(){
-  var d=S.draft,e={};
+  var d=S.draft,e={},lev=isLev();
   ["Alimentador","Comuna"].forEach(function(k){if(!d[k])e[k]="Elige una opción."});
-  ["Sector","Propietario"].forEach(function(k){if(!String(d[k]||"").trim())e[k]="Este dato es obligatorio."});
+  (lev?["Sector"]:["Sector","Propietario"]).forEach(function(k){if(!String(d[k]||"").trim())e[k]="Este dato es obligatorio."});
   ["Poste_Inicio","Poste_Fin"].forEach(function(k){if(!d[k])e[k]="Escribe un número."});
   S.err=e;
   if(Object.keys(e).length){render();var f=document.querySelector(".err");if(f)f.scrollIntoView({block:"center"});return}
-  var keys=EDIT.concat(PROD.map(function(q){return q[0]}));
   if(S.editing){
     var r0=S.recs.filter(function(x){return x._k===S.sel})[0];
-    keys.forEach(function(k){r0[k]=String(d[k]==null?"":d[k]).trim()});
+    aplica(d,r0);
     touch(r0);save();toast("Cambios guardados");go("home");return
   }
   var dr=mine().filter(function(x){return x._day})[0];
   var r=dr||blank();
-  keys.forEach(function(k){r[k]=String(d[k]==null?"":d[k]).trim()});
+  aplica(d,r);
   r.Fecha=today();r.PT=dayInfo().PT;r.ID=dayInfo().ID;
   if(dr){delete r._day}else{r._k="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);r._c=S.profile.Codigo;S.recs.push(r)}
   touch(r);applyDay();save();
-  S.draft={};PROD.forEach(function(p){S.draft[p[0]]=r[p[0]]||""});
-  toast(navigator.onLine?"Postes guardados. Ahora toma las fotos de antes":"Guardado en el teléfono. Ahora toma las fotos de antes");
+  S.draft={};alForm(r,S.draft);
+  toast(lev?(navigator.onLine?"Postes guardados. Ahora toma las fotos":"Guardado en el teléfono. Ahora toma las fotos"):(navigator.onLine?"Postes guardados. Ahora toma las fotos de antes":"Guardado en el teléfono. Ahora toma las fotos de antes"));
   go("finish",r._k);
 }
 function saveFinish(){
   var d=S.draft,r=S.recs.filter(function(x){return x._k===S.sel})[0];
+  if(!r){go("home");return}
+  if(tipoDe(r)==="l"){
+    var esp=String(d.Especie||"").trim();
+    if(!esp&&!LEVN.some(function(k){return d[k]!==""&&d[k]!=null})){
+      S.err={prod:"Escribe la especie (si no hay árboles, escribe «Pradera») o anota al menos un dato."};render();
+      var fe=document.querySelector(".err");if(fe)fe.scrollIntoView({block:"center"});return
+    }
+    LEVN.forEach(function(k){r[k]=d[k]||""});r.Especie=esp;
+    touch(r);save();toast(navigator.onLine?"Levantamiento guardado":"Guardado en el teléfono");go("home");return
+  }
   if(!PROD.some(function(q){return d[q[0]]!==""&&d[q[0]]!=null})){S.err={prod:"Escribe al menos un dato. Si no hiciste nada, escribe 0."};render();return}
   PROD.forEach(function(p){r[p[0]]=d[p[0]]||""});
   touch(r);save();toast(navigator.onLine?"Producción guardada":"Guardado en el teléfono");go("home");
@@ -769,7 +864,7 @@ function doLogin(){
     S.busy=false;
     if(res&&res.ok){
       if(S.profile&&S.profile.Codigo!==c)S.day=null;
-      S.profile={Codigo:c,Empresa:res.empresa,Brigada:res.brigada,Km:!!res.km};
+      S.profile={Codigo:c,Empresa:res.empresa,Brigada:res.brigada,Km:!!res.km,Tipo:res.tipo==="levantamiento"?"levantamiento":"forestal"};
       persist();toast("Listo. La app ya sabe quién eres");go("home");sync();
     }else{S.err={Codigo:"Ese código no existe. Revísalo o pídelo a tu empresa."};render()}
   }).catch(function(e){
@@ -786,11 +881,12 @@ document.addEventListener("click",function(ev){
   var b=ev.target.closest("[data-act]");if(!b)return;
   var a=b.getAttribute("data-act");
   if(a==="home")go("home");
-  else if(a==="edit"){var re=S.recs.filter(function(x){return x._k===S.sel})[0];if(re){S.draft={};EDIT.concat(PROD.map(function(q){return q[0]})).forEach(function(k){S.draft[k]=re[k]||""});S.editing=true;go("new",re._k)}}
+  else if(a==="edit"){var re=S.recs.filter(function(x){return x._k===S.sel})[0];if(re){S.draft={};alForm(re,S.draft,true);S.editing=true;go("new",re._k)}}
+  else if(a==="prop-igual"){var pa=propAnterior();if(pa){S.draft.Propietario=pa.Propietario;S.draft.Fono=pa.Fono||"";delete S.err.Propietario;render()}}
   else if(a==="del"){S.confirmDel=true;render()}
   else if(a==="del-no"){S.confirmDel=false;render()}
   else if(a==="del-yes"){var rd=S.recs.filter(function(x){return x._k===S.sel})[0];
-    if(rd){S.recs=S.recs.filter(function(x){return x!==rd});S.dels.push({k:rd._k,c:rd._c});applyDay();ensureDayRow();save();toast("Postes borrados")}go("home")}
+    if(rd){S.recs=S.recs.filter(function(x){return x!==rd});S.dels.push({k:rd._k,c:rd._c,t:tipoDe(rd)});applyDay();ensureDayRow();save();toast("Postes borrados")}go("home")}
   else if(a==="new"){S.editing=false;if(!dayInfo()){S.afterDay=true;S.draft={PT:"",ID:"",hi:"",ht:"",km:""};go("day")}else{newDraft();go("new")}}
   else if(a==="day"){var di=dayInfo();S.afterDay=false;S.draft={PT:di?di.PT:"",ID:di?di.ID:"",hi:di?di.hi:"",ht:di?di.ht:"",km:di?di.km:""};go("day")}
   else if(a==="foto")openCam(b.getAttribute("data-fase"));
@@ -805,7 +901,7 @@ document.addEventListener("click",function(ev){
   else if(a==="save-day")saveDay();
   else if(a==="save-new")saveNew();
   else if(a==="open"){var id=b.getAttribute("data-id"),r=S.recs.filter(function(x){return x._k===id})[0];
-    if(r){S.draft={};PROD.forEach(function(p){S.draft[p[0]]=r[p[0]]||""});go("finish",id)}}
+    if(r){S.draft={};alForm(r,S.draft);go("finish",id)}}
   else if(a==="save-finish")saveFinish();
   else if(a==="save-profile")doLogin();
   else if(a==="change-profile"){S.draft={Codigo:""};go("setup")}
@@ -822,11 +918,13 @@ document.addEventListener("input",function(ev){
   var v=t.value;
   if(f==="PT")v=v.toUpperCase().replace(/[^R0-9]/g,"").slice(0,7);
   else if(f==="Codigo")v=v.toUpperCase().replace(/\s/g,"");
+  else if(f==="Fono")v=v.replace(/\D/g,"").slice(0,15);
   else if(["Poste_Inicio","Poste_Fin"].indexOf(f)>-1||t.getAttribute("data-kind")==="n")v=v.replace(/\D/g,"");
   else if(t.getAttribute("data-kind")==="d")v=v.replace(",",".").replace(/[^0-9.]/g,"").replace(/(\..*)\./g,"$1");
   if(v!==t.value)t.value=v;
   S.draft[f]=v;delete S.err[f];
   var nx=t.parentNode.querySelector(".err");if(nx)nx.remove();
+  if(LEVN.indexOf(f)>-1||(f==="Especie"&&v.trim()))avisoProdFuera();
 });
 document.addEventListener("keydown",function(ev){
   if(ev.key==="Enter"&&ev.target.id==="f-Codigo"){ev.preventDefault();doLogin()}
