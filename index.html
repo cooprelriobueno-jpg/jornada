@@ -145,6 +145,38 @@ body.cam-open{overflow:hidden}
 .brand{background:var(--brand);margin:-22px -24px 14px;padding-top:env(safe-area-inset-top,0px);border-bottom:4px solid var(--brand-y)}
 .brand>div{width:min(100%,488px);margin-inline:auto;padding:0 24px;height:56px;display:flex;align-items:center}
 .brand img{display:block;height:30px;width:auto;margin-left:-6px}
+
+/* ===== NUEVO: sugerencia del poste que sigue (vano a vano) =====
+   Usa solo las variables y letras que ya tiene la app (modo claro y oscuro). */
+.vz{display:flex;flex-direction:column;gap:10px}
+.vz:empty{display:none}
+.vano{display:flex;gap:10px;align-items:flex-start;border-radius:8px;padding:10px 12px;margin:0;font-size:14px;line-height:1.35;font-weight:500}
+.vano b{font-weight:700}
+.vano .ic{flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;line-height:1;font-weight:700}
+.vano.ok{background:var(--ok-bg);color:var(--ok)}
+.vano.ok .ic{background:var(--ok);color:var(--ok-bg)}
+.vano.warn{background:var(--warn-bg);color:var(--warn)}
+.vano.warn .ic{background:var(--warn);color:var(--warn-bg)}
+.vano.info{background:var(--field);color:var(--muted);border:1px solid var(--line)}
+.vano.info .ic{background:var(--muted);color:var(--field);font-family:var(--body)}
+.sug{display:flex;flex-direction:column;gap:6px}
+.sug-t{margin:0;font-size:14px;font-weight:500;color:var(--muted)}
+.sug-b{display:flex;gap:8px;flex-wrap:wrap}
+.sbtn{flex:1 1 140px;min-height:52px;font:inherit;font-weight:600;color:var(--accent);background:var(--surface);border:2px dashed var(--accent);border-radius:8px;padding:0 14px;cursor:pointer;display:flex;align-items:baseline;justify-content:center;gap:8px;line-height:52px}
+.sbtn b{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.sbtn small{font-size:14px;font-weight:500;color:var(--muted)}
+
+/* ===== NUEVO: «Poste no terminado» (forestal) ===== */
+.nt{display:flex;flex-direction:column;gap:8px}
+.nt .lbl{margin:0}
+.chips[aria-label=Terminado]{display:flex}
+.chips[aria-label=Terminado] .chip{flex:1 1 0}
+.chips[aria-label=Terminado] .chip:last-child[aria-pressed=true]{background:var(--warn-bg);border-color:var(--warn);color:var(--warn);font-weight:600}
+.tag.go{background:var(--accent);color:var(--on-accent);font-size:14px;font-weight:600;padding:7px 12px;border-radius:8px}
+
+/* ===== NUEVO: alimentador 1 dividido en «1 Norte» y «1 Sur» ===== */
+.chips.alim6{display:grid;grid-template-columns:repeat(4,1fr)}
+.chips.alim6 .chip.s2{grid-column:span 2}
 </style>
 </head>
 <body>
@@ -154,9 +186,9 @@ body.cam-open{overflow:hidden}
 <script src="config.js"></script>
 <script>
 var CFG=window.APP_CONFIG||{};
-var VER="6", PTRE=/^R\d{6}$/, KEY="faenas-app-v1";
+var VER="7", PTRE=/^R\d{6}$/, KEY="faenas-app-v1";
 var SEND=["Fecha","PT","ID","Propietario","Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Hora_Inicio","Hora_Termino","Kilometraje","Tala_20_30","Tala_31_60","Tala_Mas_60","Poda","Roce_Debil","Roce_Fuerte"];
-var ALIM=["1","2","3","4","5"], COMUNAS=["La Unión","Río Bueno","Lago Ranco","San Pablo"];
+var ALIM=["1 Norte","1 Sur","2","3","4","5"], COMUNAS=["La Unión","Río Bueno","Lago Ranco","San Pablo"];
 var PROD=[["Tala_20_30","Tala 20 a 30 m","n"],["Tala_31_60","Tala 31 a 60 m","n"],["Tala_Mas_60","Tala más de 60 m","n"],["Poda","Poda","n"],["Roce_Debil","Roce débil (m)","d"],["Roce_Fuerte","Roce fuerte (m)","d"]];
 /* Brigadas de levantamiento: en vez de producción anotan lo que hay DENTRO y FUERA de la faja de seguridad (no hay poda). Los nombres de los datos los lee el servidor (filaLev_ en Code.gs). */
 var SEND_LEV=["Fecha","PT","ID","Propietario","Fono","Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Hora_Inicio","Hora_Termino","Kilometraje",
@@ -164,7 +196,7 @@ var SEND_LEV=["Fecha","PT","ID","Propietario","Fono","Alimentador","Comuna","Sec
 var DENTRO=[["Dentro_Tala_20_30","Tala 20 a 30 m","n"],["Dentro_Tala_31_60","Tala 31 a 60 m","n"],["Dentro_Tala_Mas_60","Tala más de 60 m","n"],["Dentro_Roce_Debil","Roce débil (m)","d"],["Dentro_Roce_Fuerte","Roce fuerte (m)","d"]];
 var FUERA=[["Fuera_Tala_20_30","Tala 20 a 30 m","n"],["Fuera_Tala_31_60","Tala 31 a 60 m","n"],["Fuera_Tala_Mas_60","Tala más de 60 m","n"]];
 var LEVN=DENTRO.concat(FUERA).map(function(q){return q[0]});
-var S={recs:[],dels:[],dq:[],pq:[],lc:0,lastOk:0,copied:false,docSyncing:false,docErr:"",fotoSyncing:false,fotoErr:"",day:null,profile:null,view:"home",sel:null,draft:{},err:{},busy:false,syncing:false,syncErr:"",confirmDel:false,editing:false,afterDay:false};
+var S={recs:[],dels:[],dq:[],pq:[],lc:0,lastOk:0,copied:false,docSyncing:false,docErr:"",fotoSyncing:false,fotoErr:"",day:null,profile:null,view:"home",sel:null,draft:{},err:{},busy:false,syncing:false,syncErr:"",confirmDel:false,editing:false,afterDay:false,contFrom:null,cont:false,viejo:false};
 var $app=document.getElementById("app");
 
 function cobraKm(){return !!(S.profile&&S.profile.Km)}
@@ -227,7 +259,7 @@ function hhmm(t){var d=new Date(t);return p2(d.getHours())+":"+p2(d.getMinutes()
 /* "Enviado 08:31" (hoy) o "Enviado 20-10 17:05" (otro día). Si nunca se ha enviado nada: "Todo enviado". */
 function lastOkTxt(){if(!S.lastOk)return "Todo enviado";var d=new Date(S.lastOk);return "Enviado "+(isoOf(d)===today()?"":p2(d.getDate())+"-"+p2(d.getMonth()+1)+" ")+hhmm(S.lastOk)}
 function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(function(){t.hidden=true},2600)}
-function go(v,id){if(v!=="new")S.editing=false;S.confirmDel=false;S.view=v;S.sel=id||null;S.err={};window.scrollTo(0,0);render()}
+function go(v,id){if(v!=="new")S.editing=false;if(v!=="new"&&v!=="day"){S.contFrom=null;S.cont=false}S.confirmDel=false;S.view=v;S.sel=id||null;S.err={};window.scrollTo(0,0);render()}
 
 /* ---------- Comunicación con el servidor ---------- */
 function api(payload,ms){
@@ -608,7 +640,7 @@ function limpiarFotos(){
 var syncTimer=0;
 function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(sync,400)}
 function sync(){
-  syncDocs();syncFotos();
+  redRefresh();syncDocs();syncFotos();
   if(S.syncing||!navigator.onLine||!CFG.API_URL||!S.profile&&!S.recs.length&&!S.dels.length)return;
   var groups={};
   function grp(c,t){var k=c+"|"+t;return groups[k]||(groups[k]={c:c,t:t,u:[],d:[]})}
@@ -636,10 +668,192 @@ function sync(){
   });
 }
 
+/* ---------- Poste siguiente: sugerencias vano a vano ---------- */
+/* El servidor entrega una copia compacta de la red de postes que guarda el mapa (acción "vecinos"). Se baja una vez, se guarda en el teléfono (IndexedDB) y solo se vuelve
+   a bajar cuando cambia (el servidor compara una huella). Con ella, mientras se anotan POSTE INICIO y POSTE FIN, la app sugiere el poste que sigue (los vecinos del poste de inicio,
+   con los metros) y avisa —sin bloquear nada— si el poste final se salta otros postes, está lejos o no está en el mapa. Todo se calcula en el teléfono, también sin señal.
+   Sin datos (nunca se bajó, o el servidor no la tiene), la pantalla queda exactamente como antes. */
+var RED=null,REDTS=0,REDTRY=0,REDP=null,redBusy=false,RED_CADA=6*3600000,RED_REINTENTO=600000,LEJOS=500,MAX_SALTOS=5,MAX_SUG=4,vanoTimer=0,vanoLast="";
+var NT_SI="Sí, terminados",NT_NO="No, siguen mañana";
+function numP(v){var s=String(v==null?"":v).trim();if(!/^\d{1,9}$/.test(s))return null;var n=parseInt(s,10);return n>0?n:null}
+function redOk(P){return !!(P&&P.v===1&&P.h&&Array.isArray(P.i)&&Array.isArray(P.x)&&Array.isArray(P.y)&&Array.isArray(P.e)&&P.i.length>0&&P.i.length===P.x.length&&P.x.length===P.y.length&&P.e.length>=2)}
+function distPos(R,i,j){var dx=R.X[i]-R.X[j],dy=R.Y[i]-R.Y[j];return Math.round(Math.sqrt(dx*dx+dy*dy))}
+/* La respuesta del servidor (números de poste, posiciones y tramos en diferencias) pasa a una red lista para consultar. null si no sirve. */
+function redBuild(P){
+  if(!redOk(P))return null;
+  var n=P.i.length,R={h:P.h,n:n,ids:new Array(n),X:new Array(n),Y:new Array(n),idx:{},dup:{},adj:new Array(n),ret:{}},id=0,x=0,y=0,a=0,b,j,k,ne=0;
+  for(j=0;j<n;j++){id+=P.i[j];x+=P.x[j];y+=P.y[j];R.ids[j]=id;R.X[j]=x;R.Y[j]=y;if(R.idx[id]===undefined)R.idx[id]=j;else R.dup[id]=true}     /* un número repetido no se usa: no se sabe cuál es el poste */
+  (P.d||[]).forEach(function(v){R.dup[v]=true});
+  var put=function(p,q){(R.adj[p]||(R.adj[p]=[])).push(q)};
+  for(k=0;k+1<P.e.length;k+=2){a+=P.e[k];b=a+P.e[k+1];if(a<0||b<0||a>=n||b>=n||a===b)continue;put(a,b);put(b,a);ne++}
+  if(!ne)return null;
+  for(j=0;j<n;j++)if(R.adj[j])R.adj[j].sort(function(p,q){return distPos(R,j,p)-distPos(R,j,q)||p-q});
+  for(k=0;k+2<(P.r||[]).length;k+=3)R.ret[P.r[k]]=[P.r[k+1],P.r[k+2]];
+  return R;
+}
+/* Qué se sabe de un número de poste: está en la red ("red"), es un poste retirado con su última posición ("ret"), está repetido ("dup": no se usa) o no está ("none"). */
+function redInfo(id){
+  if(RED.dup[id])return {k:"dup"};
+  var i=RED.idx[id];if(i!==undefined)return {k:"red",i:i};
+  var r=RED.ret[id];if(r)return {k:"ret",x:r[0],y:r[1]};
+  return {k:"none"};
+}
+function infoXY(o){return o.k==="red"?[RED.X[o.i],RED.Y[o.i]]:[o.x,o.y]}
+function infoDist(p,q){var a=infoXY(p),b=infoXY(q),dx=a[0]-b[0],dy=a[1]-b[1];return Math.round(Math.sqrt(dx*dx+dy*dy))}
+function txtDist(m){return m>=1000?(m/1000).toFixed(1).replace(".",",")+" km":m+" m"}
+/* Los postes que están en medio: el camino más corto (en postes) entre dos postes de la red, como mucho MAX_SALTOS postes en medio. null si no hay. */
+function redRuta(i,j){
+  var prev={},seen={},q=[i],nq,u,ns,k,v,d,c,out;seen[i]=1;
+  for(d=0;d<=MAX_SALTOS;d++){
+    nq=[];
+    for(c=0;c<q.length;c++){u=q[c];ns=RED.adj[u]||[];
+      for(k=0;k<ns.length;k++){v=ns[k];if(seen[v])continue;seen[v]=1;prev[v]=u;
+        if(v===j){out=[v];while(out[0]!==i)out.unshift(prev[out[0]]);return out}
+        nq.push(v)}}
+    q=nq;if(!q.length)break;
+  }
+  return null;
+}
+/* Los vanos que esta brigada ya anotó con el poste "a" (para no sugerir volver atrás). Lo que se está corrigiendo no cuenta. */
+function yaHechos(a){
+  var ex={};if(!S.profile)return ex;
+  S.recs.forEach(function(r){
+    if(r._day||r._c!==S.profile.Codigo||tipoDe(r)!==tipoMio()||(S.editing&&r._k===S.sel))return;
+    var p=numP(r.Poste_Inicio),q=numP(r.Poste_Fin);
+    if(p===a&&q!==null)ex[q]=1;else if(q===a&&p!==null)ex[p]=1;
+  });
+  return ex;
+}
+function vanoMsg(tipo,txt){return '<p class="vano '+tipo+'"><b class="ic" aria-hidden="true">'+(tipo==="ok"?"✓":tipo==="warn"?"!":"i")+'</b><span>'+txt+'</span></p>'}
+function sugHtml(titulo,btns){return '<div class="sug"><p class="sug-t">'+titulo+'</p><div class="sug-b">'+btns+'</div></div>'}
+/* El contenido de la zona de avisos y sugerencias bajo los postes. "" si no hay nada que decir. */
+function vanoHtml(){
+  if(!RED)return "";
+  var a=numP(S.draft.Poste_Inicio),b=numP(S.draft.Poste_Fin);
+  if(a===null&&b===null)return "";
+  var A=a===null?null:redInfo(a),B=b===null?null:redInfo(b),h="",sug=false,nuevos=[];
+  if(A&&A.k==="none")nuevos.push(a);
+  if(B&&B.k==="none"&&b!==a)nuevos.push(b);
+  if(nuevos.length===1)h+=vanoMsg("info","<b>El "+nuevos[0]+" no está en el mapa.</b> Puede ser un poste nuevo. Se guarda igual.");
+  else if(nuevos.length>1)h+=vanoMsg("info","<b>Los postes "+nuevos[0]+" y "+nuevos[1]+" no están en el mapa.</b> Pueden ser postes nuevos. Se guarda igual.");
+  if(A&&A.k==="red"){
+    if(!B||B.k==="none"||B.k==="dup")sug=true;
+    else if(B.k==="red"&&a!==b){
+      var directo=null,ns=RED.adj[A.i]||[],k;
+      for(k=0;k<ns.length;k++)if(ns[k]===B.i){directo=distPos(RED,A.i,B.i);break}
+      if(directo!==null)h+=vanoMsg("ok","<b>Es el poste que sigue</b>, a "+txtDist(directo)+".");
+      else{
+        sug=true;
+        var ruta=redRuta(A.i,B.i);
+        if(ruta){
+          var en=ruta.slice(1,-1).map(function(p){return "el "+RED.ids[p]}),n=en.length;
+          h+=vanoMsg("warn","<b>"+(n===1?"Se salta un poste.":"Se saltan "+n+" postes.")+"</b> Entre el "+a+" y el "+b+(n===1?" está ":" están ")+(n===1?en[0]:en.slice(0,-1).join(", ")+" y "+en[n-1])+". Lo ideal es anotar de poste en poste. Se guarda igual.");
+        }else{
+          var D=infoDist(A,B);
+          h+=D>=LEJOS?vanoMsg("warn","<b>Está lejos.</b> El "+b+" queda a "+txtDist(D)+" del "+a+". Revisa los números. Se guarda igual."):vanoMsg("warn","<b>No hay línea entre el "+a+" y el "+b+" en el mapa.</b> Revisa los números. Se guarda igual.");
+        }
+      }
+    }else if(B.k==="ret"){
+      var D2=infoDist(A,B);
+      if(D2>=LEJOS){sug=true;h+=vanoMsg("warn","<b>Está lejos.</b> El "+b+" queda a "+txtDist(D2)+" del "+a+". Revisa los números. Se guarda igual.")}
+    }
+  }
+  if(sug){
+    var ex=yaHechos(a),vs=[],ns2=RED.adj[A.i]||[],q;
+    for(q=0;q<ns2.length&&vs.length<MAX_SUG;q++){var idv=RED.ids[ns2[q]];if(RED.dup[idv]||ex[idv])continue;vs.push('<button type="button" class="sbtn" data-act="sug" data-poste="'+idv+'"><b>'+idv+'</b><small>'+txtDist(distPos(RED,A.i,ns2[q]))+'</small></button>')}
+    if(vs.length)h+=sugHtml("Según el mapa, después del "+a+" sigue:",vs.join(""));
+  }
+  return h;
+}
+/* Los avisos se actualizan solos 0,7 segundos después de la última tecla (no al salir del recuadro) y nunca mientras hay un dedo (o el mouse) apretando la pantalla:
+   si el contenido cambiara justo en ese momento, el botón que se está tocando (Guardar, por ejemplo) se correría y el toque se perdería. */
+var tocando=false,vanoPend=false;
+document.addEventListener("pointerdown",function(){tocando=true},true);
+["pointerup","pointercancel"].forEach(function(n){document.addEventListener(n,function(){
+  tocando=false;if(vanoPend){vanoPend=false;clearTimeout(vanoTimer);vanoTimer=setTimeout(vanoUpdate,150)}},true)});
+function vanoUpdate(){
+  clearTimeout(vanoTimer);
+  var z=document.getElementById("vano");if(!z||S.view!=="new")return;
+  if(tocando){vanoPend=true;return}
+  var h=vanoHtml();if(h!==vanoLast){vanoLast=h;z.innerHTML=h}
+}
+function vanoSoon(){clearTimeout(vanoTimer);vanoTimer=setTimeout(vanoUpdate,700)}
+/* Atajo opcional: «Empezar en el X», donde terminó el registro anterior de esta brigada. */
+function ultimoFin(){
+  if(!S.profile)return null;
+  for(var i=S.recs.length-1;i>=0;i--){var r=S.recs[i];
+    if(r._day||r._c!==S.profile.Codigo||tipoDe(r)!==tipoMio())continue;
+    var f=numP(r.Poste_Fin);if(f!==null)return f}
+  return null;
+}
+function atajoInicio(){
+  if(S.editing||String(S.draft.Poste_Inicio||"").trim())return "";
+  var f=ultimoFin();if(f===null)return "";
+  return '<div class="vz" id="atajo">'+sugHtml("Tu registro anterior terminó en el "+f+":",'<button type="button" class="sbtn" data-act="empezar" data-poste="'+f+'"><b>Empezar en el '+f+'</b></button>')+'</div>';
+}
+/* La red se baja del servidor y se guarda en el teléfono. */
+function redLoad(){
+  REDP=idbGet("red").then(function(o){
+    if(!o||o.v!==1)return;
+    var R=redBuild(o.P);if(!R)return;
+    RED=R;REDTS=o.ts||0;
+    return idbGet("red-ts").then(function(t){if(t&&t>REDTS)REDTS=t});
+  }).then(function(){if(RED&&S.view==="new")vanoUpdate()}).catch(function(){});
+}
+function redRefresh(){
+  if(redBusy||!S.profile||!navigator.onLine||!CFG.API_URL)return;
+  redBusy=true;
+  (REDP||Promise.resolve()).then(function(){            /* primero se espera a que se lea la copia guardada en el teléfono */
+    var t=Date.now();
+    if(REDTS&&t-REDTS<RED_CADA)return;                  /* se revisó hace menos de 6 horas */
+    if(REDTRY&&t-REDTRY<RED_REINTENTO)return;           /* se intentó hace poco y no resultó: no se insiste */
+    REDTRY=t;
+    return api({action:"vecinos",codigo:S.profile.Codigo,h:RED?RED.h:""},60000).then(function(res){
+      if(!res||!res.ok)return;
+      if(res.igual){if(RED&&res.h===RED.h){REDTS=Date.now();idbPut("red-ts",REDTS).catch(function(){})}return}
+      var R=redBuild(res);if(!R)return;
+      RED=R;REDTS=Date.now();
+      idbPut("red",{v:1,ts:REDTS,P:res}).catch(function(){});
+      if(S.view==="new")vanoUpdate();
+    });
+  }).catch(function(){}).then(function(){redBusy=false});
+}
+/* Forestal: «poste no terminado». Lo que quedó sin terminar aparece al día siguiente en «Para continuar», con los mismos datos. */
+function ddmm(iso){return iso.slice(8,10)+"-"+iso.slice(5,7)}
+function paraContinuar(){
+  if(isLev()||!S.profile)return [];
+  var t=today(),cut=daysAgo(7);
+  return S.recs.filter(function(r){return r._nt&&!r._day&&r._c===S.profile.Codigo&&tipoDe(r)==="f"&&r.Fecha<t&&r.Fecha>=cut})
+    .sort(function(x,y){return x.Fecha<y.Fecha?1:x.Fecha>y.Fecha?-1:0});
+}
+function contSection(){
+  var l=paraContinuar();if(!l.length)return "";
+  return '<section style="display:flex;flex-direction:column;gap:8px"><h2>Para continuar</h2><p class="note">Quedaron sin terminar. Toca para seguir con los mismos datos.</p>'+l.map(function(r){
+    return '<button class="item" data-act="cont" data-id="'+esc(r._k)+'"><span><b>Postes '+esc(r.Poste_Inicio)+' a '+esc(r.Poste_Fin)+'</b><small>'+esc(r.Comuna)+' · '+esc(r.Sector)+' · Alimentador '+esc(r.Alimentador)+'</small><small>Propietario: '+esc(r.Propietario)+' · '+(r.Fecha===daysAgo(1)?'desde ayer ('+ddmm(r.Fecha)+')':'desde el '+ddmm(r.Fecha))+'</small></span><span class="tag go">Continuar ›</span></button>'}).join("")+'</section>';
+}
+function ntControl(){
+  if(!S.draft.Terminado)S.draft.Terminado=NT_SI;
+  return '<div class="nt"><span class="lbl">¿Terminaste estos postes?</span>'+chips("Terminado",[NT_SI,NT_NO])+'<p class="note" id="nt-note"'+(S.draft.Terminado===NT_NO?'':' hidden')+'>Mañana te van a aparecer arriba, en «Para continuar», con los mismos datos.</p></div>';
+}
+/* El aviso de arriba de «Agregar postes»: qué se copió del registro anterior (o de los postes que se siguen). */
+function okNuevo(){
+  if(S.editing)return "";
+  if(S.cont){
+    var c=S.recs.filter(function(x){return x._k===S.contFrom})[0];
+    return '<p class="okmsg">Son los mismos postes '+(c&&c.Fecha!==daysAgo(1)?'del '+ddmm(c.Fecha):'de ayer')+(S.viejo?'. Copiamos los datos menos el alimentador: <b>elígelo (el 1 ahora es «1 Norte» o «1 Sur») y escribe solo lo que hiciste hoy.</b></p>':'. Copiamos todos los datos: <b>escribe solo lo que hiciste hoy.</b></p>');
+  }
+  if(!S.copied)return "";
+  if(S.viejo)return '<p class="okmsg">Copiamos la comuna y el sector del registro anterior. <b>Elige el alimentador:</b> el 1 ahora es «1 Norte» o «1 Sur».</p>';
+  return '<p class="okmsg">Copiamos la comuna, el sector y el alimentador del registro anterior. <b>Cambia solo lo que sea distinto.</b></p>';
+}
+/* Un registro de antes de la versión 7 dice «1»: se puede dejar así o elegir «1 Norte» o «1 Sur». */
+function alimViejo(){return S.draft.Alimentador==="1"?'<p class="note">Este registro dice «1». Si quieres, elige ahora «1 Norte» o «1 Sur».</p>':""}
+
 /* ---------- Pantallas ---------- */
-function chips(field,opts){
-  return '<div class="chips" role="group" aria-label="'+field+'">'+opts.map(function(o){
-    return '<button type="button" class="chip" data-chip="'+field+'" data-val="'+esc(o)+'" aria-pressed="'+(S.draft[field]===o)+'">'+esc(o)+'</button>'}).join("")+'</div>';
+/* cls "alim6": el alimentador con «1 Norte» y «1 Sur» (cada uno ocupa 2 de 4 columnas) y abajo 2, 3, 4 y 5. */
+function chips(field,opts,cls){
+  return '<div class="chips'+(cls?" "+cls:"")+'" role="group" aria-label="'+field+'">'+opts.map(function(o,i){
+    return '<button type="button" class="chip'+(cls==="alim6"&&i<2?" s2":"")+'" data-chip="'+field+'" data-val="'+esc(o)+'" aria-pressed="'+(S.draft[field]===o)+'">'+esc(o)+'</button>'}).join("")+'</div>';
 }
 function field(id,label,opts){
   opts=opts||{};
@@ -675,6 +889,7 @@ function viewHome(){
     h+='<p class="note">El N° de PT, el ID y las horas se anotan una sola vez al día. Después solo agregas los postes.</p><button class="btn" data-act="day">Anotar datos del día</button>';
   }
   h+='</section>';
+  h+=contSection();
   h+='<section style="display:flex;flex-direction:column;gap:8px"><h2>Postes por completar</h2>';
   if(!pend.length)h+='<p class="note">Todo al día. Toca «Agregar postes» para el siguiente.</p>';
   pend.forEach(function(r){h+=item(r,'<span class="tag warn">'+(isLev()?"Falta levantamiento":"Falta producción")+'</span>')});
@@ -722,11 +937,13 @@ function propAtajo(){
 function viewNew(){
   var h='<button class="back" data-act="home">‹ Volver</button><h1>'+(S.editing?"Corregir postes":"Agregar postes")+'</h1><p class="sub">'+esc(S.profile.Empresa)+' · '+esc(S.profile.Brigada)+' · N° de PT '+esc(dayInfo().PT)+' · ID '+esc(dayInfo().ID)+'</p>';
   h+='<section class="card">';
-  if(S.copied&&!S.editing)h+='<p class="okmsg">Copiamos la comuna, el sector y el alimentador del registro anterior. <b>Cambia solo lo que sea distinto.</b></p>';
+  h+=okNuevo();
   h+='<div><span class="lbl">Comuna</span>'+chips("Comuna",COMUNAS)+errOf("Comuna")+'</div>';
   h+=field("Sector","Sector",{ph:"Nombre del sector"});
-  h+='<div><span class="lbl">Alimentador</span>'+chips("Alimentador",ALIM)+errOf("Alimentador")+'</div>';
+  h+='<div><span class="lbl">Alimentador</span>'+chips("Alimentador",ALIM,"alim6")+alimViejo()+errOf("Alimentador")+'</div>';
+  h+=atajoInicio();
   h+='<div class="grid2">'+field("Poste_Inicio","Poste inicio",{mode:"numeric",ph:"1"})+field("Poste_Fin","Poste fin",{mode:"numeric",ph:"2"})+'</div>';
+  vanoLast=vanoHtml();h+='<div class="vz" id="vano" aria-live="polite">'+vanoLast+'</div>';
   if(isLev()){
     h+=field("Propietario","Propietario",{ph:"Nombre y apellido"})+propAtajo()+field("Fono","Fono del propietario",{mode:"tel",ph:"912345678"});
     h+='<p class="note">Si no pudiste saber quién es el propietario o su fono, déjalos vacíos.</p>';
@@ -751,7 +968,7 @@ function viewFinish(){
   }else{
     h+=fotoCard(r,"antes")+fotoCard(r,"despues");
     h+='<section class="card"><h2>Producción</h2>'+prodGrid(S.draft);
-    h+='<p class="note">Escribe solo lo que hiciste. Lo demás déjalo vacío. Si no hiciste nada en este poste, escribe 0 en cualquiera.</p>'+errOf("prod")+'</section>';
+    h+='<p class="note">Escribe solo lo que hiciste. Lo demás déjalo vacío. Si no hiciste nada en este poste, escribe 0 en cualquiera.</p>'+errOf("prod")+ntControl()+'</section>';
     h+='<button class="btn main" data-act="save-finish">Guardar producción</button>';
     h+='<button class="btn small" data-act="edit">Corregir postes, comuna, sector o propietario</button>';
   }
@@ -800,10 +1017,18 @@ function saveDay(){
 function newDraft(){
   var d={};
   claves(isLev()).forEach(function(k){d[k]=""});
-  /* Del registro anterior de hoy se copian SOLO comuna, sector y alimentador (los postes no son siempre correlativos). */
+  S.cont=false;S.copied=false;S.viejo=false;
+  /* «Para continuar» (forestal): los mismos postes de un día anterior, con todos sus datos menos la producción (esa empieza vacía). */
+  var c=S.contFrom&&!isLev()?S.recs.filter(function(x){return x._k===S.contFrom})[0]:null;
+  if(c){
+    ["Comuna","Sector","Alimentador","Poste_Inicio","Poste_Fin","Propietario"].forEach(function(k){d[k]=String(c[k]==null?"":c[k])});
+    if(ALIM.indexOf(d.Alimentador)<0){d.Alimentador="";S.viejo=true}     /* un «1» de antes de la versión 7: se elige «1 Norte» o «1 Sur» */
+    S.cont=true;S.draft=d;return;
+  }
+  /* Del registro anterior de hoy se copian SOLO comuna, sector y alimentador (los postes no son siempre correlativos). Un «1» de antes de la versión 7 no se copia: se elige «1 Norte» o «1 Sur». */
   var rs=real(),p=rs.length?rs[rs.length-1]:null;
   S.copied=!!(p&&p.Comuna&&p.Sector&&p.Alimentador);
-  if(S.copied){d.Comuna=p.Comuna;d.Sector=p.Sector;d.Alimentador=p.Alimentador}
+  if(S.copied){d.Comuna=p.Comuna;d.Sector=p.Sector;if(ALIM.indexOf(p.Alimentador)>=0)d.Alimentador=p.Alimentador;else S.viejo=true}
   S.draft=d;
 }
 var EDIT=["Alimentador","Comuna","Sector","Poste_Inicio","Poste_Fin","Propietario"];
@@ -817,6 +1042,7 @@ function alForm(r,d,todo){
   var lev=tipoDe(r)==="l",ks=lev?LEVN.concat(["Especie"]):PROD.map(function(q){return q[0]});
   if(todo)ks=EDIT.concat(lev?["Fono"]:[],ks);
   ks.forEach(function(k){d[k]=r[k]==null?"":String(r[k])});
+  if(!lev)d.Terminado=r._nt?NT_NO:NT_SI;
 }
 function saveNew(){
   var d=S.draft,e={},lev=isLev();
@@ -835,6 +1061,7 @@ function saveNew(){
   aplica(d,r);
   r.Fecha=today();r.PT=dayInfo().PT;r.ID=dayInfo().ID;
   if(dr){delete r._day}else{r._k="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);r._c=S.profile.Codigo;S.recs.push(r)}
+  if(S.contFrom){var oc=S.recs.filter(function(x){return x._k===S.contFrom})[0];if(oc)delete oc._nt;S.contFrom=null;S.cont=false}
   touch(r);applyDay();save();
   S.draft={};alForm(r,S.draft);
   toast(lev?(navigator.onLine?"Postes guardados. Ahora toma las fotos":"Guardado en el teléfono. Ahora toma las fotos"):(navigator.onLine?"Postes guardados. Ahora toma las fotos de antes":"Guardado en el teléfono. Ahora toma las fotos de antes"));
@@ -854,7 +1081,8 @@ function saveFinish(){
   }
   if(!PROD.some(function(q){return d[q[0]]!==""&&d[q[0]]!=null})){S.err={prod:"Escribe al menos un dato. Si no hiciste nada, escribe 0."};render();return}
   PROD.forEach(function(p){r[p[0]]=d[p[0]]||""});
-  touch(r);save();toast(navigator.onLine?"Producción guardada":"Guardado en el teléfono");go("home");
+  if(d.Terminado===NT_NO)r._nt=true;else delete r._nt;
+  touch(r);save();toast(r._nt?(navigator.onLine?"Guardado. Queda para continuar mañana":"Guardado en el teléfono. Queda para continuar mañana"):(navigator.onLine?"Producción guardada":"Guardado en el teléfono"));go("home");
 }
 function doLogin(){
   var c=String(S.draft.Codigo||"").trim().toUpperCase();
@@ -877,7 +1105,9 @@ function doLogin(){
 document.addEventListener("click",function(ev){
   var chip=ev.target.closest("[data-chip]");
   if(chip){var f=chip.getAttribute("data-chip");S.draft[f]=chip.getAttribute("data-val");delete S.err[f];
-    chip.parentNode.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed",String(c===chip))});return}
+    chip.parentNode.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed",String(c===chip))});
+    if(f==="Terminado"){var nn=document.getElementById("nt-note");if(nn)nn.hidden=chip.getAttribute("data-val")!==NT_NO}
+    return}
   var b=ev.target.closest("[data-act]");if(!b)return;
   var a=b.getAttribute("data-act");
   if(a==="home")go("home");
@@ -887,7 +1117,14 @@ document.addEventListener("click",function(ev){
   else if(a==="del-no"){S.confirmDel=false;render()}
   else if(a==="del-yes"){var rd=S.recs.filter(function(x){return x._k===S.sel})[0];
     if(rd){S.recs=S.recs.filter(function(x){return x!==rd});S.dels.push({k:rd._k,c:rd._c,t:tipoDe(rd)});applyDay();ensureDayRow();save();toast("Postes borrados")}go("home")}
-  else if(a==="new"){S.editing=false;if(!dayInfo()){S.afterDay=true;S.draft={PT:"",ID:"",hi:"",ht:"",km:""};go("day")}else{newDraft();go("new")}}
+  else if(a==="sug"){var pf=b.getAttribute("data-poste"),ipf=document.getElementById("f-Poste_Fin");S.draft.Poste_Fin=pf;delete S.err.Poste_Fin;
+    if(ipf){ipf.value=pf;var epf=ipf.parentNode.querySelector(".err");if(epf)epf.remove()}vanoUpdate()}
+  else if(a==="empezar"){var pi=b.getAttribute("data-poste"),ipi=document.getElementById("f-Poste_Inicio"),fin=document.getElementById("f-Poste_Fin");S.draft.Poste_Inicio=pi;delete S.err.Poste_Inicio;
+    if(ipi){ipi.value=pi;var epi=ipi.parentNode.querySelector(".err");if(epi)epi.remove()}
+    var at=document.getElementById("atajo");if(at)at.style.display="none";vanoUpdate();if(fin)fin.focus()}
+  else if(a==="cont"){var rc=S.recs.filter(function(x){return x._k===b.getAttribute("data-id")})[0];
+    if(rc){S.editing=false;S.contFrom=rc._k;if(!dayInfo()){S.afterDay=true;S.draft={PT:"",ID:"",hi:"",ht:"",km:""};go("day")}else{newDraft();go("new")}}}
+  else if(a==="new"){S.editing=false;S.contFrom=null;S.cont=false;if(!dayInfo()){S.afterDay=true;S.draft={PT:"",ID:"",hi:"",ht:"",km:""};go("day")}else{newDraft();go("new")}}
   else if(a==="day"){var di=dayInfo();S.afterDay=false;S.draft={PT:di?di.PT:"",ID:di?di.ID:"",hi:di?di.hi:"",ht:di?di.ht:"",km:di?di.km:""};go("day")}
   else if(a==="foto")openCam(b.getAttribute("data-fase"));
   else if(a==="ver")verFoto(b.getAttribute("data-id"));
@@ -924,6 +1161,7 @@ document.addEventListener("input",function(ev){
   if(v!==t.value)t.value=v;
   S.draft[f]=v;delete S.err[f];
   var nx=t.parentNode.querySelector(".err");if(nx)nx.remove();
+  if(f==="Poste_Inicio"||f==="Poste_Fin"){if(f==="Poste_Inicio"){var at2=document.getElementById("atajo");if(at2)at2.style.display=v?"none":""}vanoSoon()}
   if(LEVN.indexOf(f)>-1||(f==="Especie"&&v.trim()))avisoProdFuera();
 });
 document.addEventListener("keydown",function(ev){
@@ -939,7 +1177,7 @@ document.addEventListener("visibilitychange",function(){
 });
 setInterval(function(){if(unsynced())sync()},30000);
 
-load();
+load();redLoad();
 if(!S.profile){S.view="setup";S.draft={Codigo:""}}
 render();sync();
 setTimeout(limpiarFotos,3000);
